@@ -139,7 +139,7 @@
                         <!-- ── Collapse / Expand toggle pinned at the top ── -->
                         <Button Grid.Row="0"
                                 Command="{Binding ToggleSidebarCommand}"
-                                ToolTip="Toggle sidebar"
+                                ToolTip="Toggle sidebar (Ctrl+B)"
                                 Cursor="Hand"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
@@ -201,7 +201,7 @@
                                 helpers:ButtonHelper.IsActive="{Binding IsMaterialLibraryActive}"
                                 HorizontalContentAlignment="Center"
                                 VerticalContentAlignment="Center"
-                                ToolTip="Library">
+                                ToolTip="Library (Ctrl+1)">
                             <StackPanel Orientation="Horizontal"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center">
@@ -237,7 +237,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedGroundworkViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsGroundworkActive}"
-                                    ToolTip="Ground" Margin="0,2">
+                                    ToolTip="Ground (Ctrl+2)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="Truck" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -249,7 +249,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedConcreteWorkViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsConcreteViewActive}"
-                                    ToolTip="Concrete" Margin="0,2">
+                                    ToolTip="Concrete (Ctrl+3)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="Mixer" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -261,7 +261,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedBlockworkViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsBlockworkActive}"
-                                    ToolTip="Block Works" Margin="0,2">
+                                    ToolTip="Block Works (Ctrl+4)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="TrowelBricks" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -273,7 +273,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedFinishesViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsFinishesActive}"
-                                    ToolTip="Finishes" Margin="0,2">
+                                    ToolTip="Finishes (Ctrl+5)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="SheetPlastic" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -285,7 +285,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedRoofworkViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsRoofworkActive}"
-                                    ToolTip="Roofs" Margin="0,2">
+                                    ToolTip="Roofs (Ctrl+6)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="PeopleRoof" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -297,7 +297,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedPaintworkViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsPaintingActive}"
-                                    ToolTip="Painting" Margin="0,2">
+                                    ToolTip="Painting (Ctrl+7)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="PaintRoller" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -309,7 +309,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedSteelworkViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsSteelworkActive}"
-                                    ToolTip="Steel" Margin="0,2">
+                                    ToolTip="Steel (Ctrl+8)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="DrumSteelpan" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -321,7 +321,7 @@
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding SelectedWindowAndDoorViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsWindowAndDoorActive}"
-                                    ToolTip="Window and Door" Margin="0,2">
+                                    ToolTip="Window and Door (Ctrl+9)" Margin="0,2">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="DoorOpen" Width="16" Height="16"
                                                   Foreground="{DynamicResource Blue900Brush}" />
@@ -372,7 +372,7 @@
                             </Button>
                             <Button Style="{DynamicResource SidebarSubButton}"
                                     Command="{Binding ExportAllRatesCommand}"
-                                    ToolTip="Export" Margin="0,2"
+                                    ToolTip="Export (Ctrl+E)" Margin="0,2"
                                     Visibility="{Binding IsExportVisible, Converter={StaticResource BoolVis}, FallbackValue=Visible}">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <fa:IconBlock Icon="FileExcel" Width="16" Height="16"
@@ -457,7 +457,8 @@
                 </GridSplitter>
 
                 <!--────────  HEADER  ─────────-->
-                <controls:Header Grid.Row="0"
+                <controls:Header x:Name="AppHeader"
+                                 Grid.Row="0"
                                  Grid.Column="2" />
                 <!--────────  BODY  ─────────-->
                 <Grid Grid.Row="1"

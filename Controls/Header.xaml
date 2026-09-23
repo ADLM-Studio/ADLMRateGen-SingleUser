@@ -260,7 +260,7 @@
                         <Button.ToolTip>
                             <ToolTip>
                                 <StackPanel>
-                                    <TextBlock Text="Sync from Cloud"
+                                    <TextBlock Text="Sync from Cloud  (F5)"
                                                FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding CloudSyncStatus}"
                                                Opacity="0.8" />
@@ -318,6 +318,19 @@
                                 </Style>
                             </fa:IconBlock.Style>
                         </fa:IconBlock>
+                    </Button>
+
+                    <!-- Keyboard shortcuts sheet (also F1 / Ctrl+/); MainWindow binds Help. -->
+                    <Button Margin="0,0,4,0"
+                            Style="{StaticResource HeaderActionButtonStyle}"
+                            Command="ApplicationCommands.Help"
+                            ToolTip="Keyboard shortcuts (F1 or Ctrl+/)">
+                        <fa:IconBlock Icon="Keyboard"
+                                      Width="16"
+                                      Height="16"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Foreground="{DynamicResource Blue900Brush}" />
                     </Button>
 
                     <Button x:Name="ColorModeButton"

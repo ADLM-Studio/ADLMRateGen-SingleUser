@@ -30,6 +30,17 @@ namespace ADLMCivilPlugin.Controls
             }
         }
 
+        /// <summary>Ctrl+F from the main window: caret into the search box.</summary>
+        public void FocusSearch()
+        {
+            SearchBox.Focus();
+            Keyboard.Focus(SearchBox);
+            SearchBox.SelectAll();
+        }
+
+        /// <summary>Ctrl+Shift+L from the main window: same as the colour-mode button, icon included.</summary>
+        public void ToggleTheme() => ColorModeButton_Click(ColorModeButton, new RoutedEventArgs());
+
         private void ColorModeButton_Click(object sender, RoutedEventArgs e)
         {
             var isDark = (Application.Current as ADLMRateGen.App)?.ToggleTheme() == true;

@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using ADLMRateGen.Helpers;
 using ADLMRateGen.Services;
 using ADLMRateGen.View;
@@ -29,6 +30,35 @@ namespace ADLMRateGen
 
         // keep a reference so we can unsubscribe from the STATIC event
         private Action<MaterialModel>? _materialPopupSavedHandler;
+
+        // Same gestures as every other ADLM product. Ctrl+1..9 are the nine trade
+        // sections in sidebar order; everything needs a signed-in session.
+        private void RegisterShortcuts(MainViewModel vm)
+        {
+            var map = new KeyboardShortcutMap("ADLM RateGen");
+            Func<bool> signedIn = () => vm.IsLoggedIn;
+            Action<ICommand> run = c => { if (c != null && c.CanExecute(null)) c.Execute(null); };
+
+            map.AddSections("Navigate",
+                KeyboardShortcutMap.Section("Library", () => run(vm.SelectedMaterialLibraryViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Ground", () => run(vm.SelectedGroundworkViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Concrete", () => run(vm.SelectedConcreteWorkViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Block Works", () => run(vm.SelectedBlockworkViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Finishes", () => run(vm.SelectedFinishesViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Roofs", () => run(vm.SelectedRoofworkViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Painting", () => run(vm.SelectedPaintworkViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Steel", () => run(vm.SelectedSteelworkViewCommand), signedIn),
+                KeyboardShortcutMap.Section("Window and Door", () => run(vm.SelectedWindowAndDoorViewCommand), signedIn));
+
+            map.Add(Key.F, ModifierKeys.Control, "Navigate", "Search", () => AppHeader.FocusSearch(), signedIn)
+               .AddCommand(Key.F5, ModifierKeys.None, "Data", "Sync from Cloud", () => vm.IsLoggedIn ? vm.RefreshCloudDataCommand : null)
+               .AddCommand(Key.E, ModifierKeys.Control, "Data", "Export all rates", () => vm.IsLoggedIn ? vm.ExportAllRatesCommand : null)
+               .AddCommand(Key.B, ModifierKeys.Control, "View", "Collapse or expand the sidebar", () => vm.ToggleSidebarCommand)
+               .Add(Key.L, ModifierKeys.Control | ModifierKeys.Shift, "View", "Switch light / dark theme", () => AppHeader.ToggleTheme());
+
+            map.AttachTo(this);
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.Help, (s, e) => map.ShowSheet(this)));
+        }
 
         public MainWindow()
         {
@@ -113,6 +143,7 @@ namespace ADLMRateGen
 
             // 5) Set DataContext
             DataContext = mainVM;
+            RegisterShortcuts(mainVM);
 
             // Every section's breakdown links into the library through
             // LibraryLink. MainViewModel already pointed it at the navigation; this
