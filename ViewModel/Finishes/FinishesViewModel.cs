@@ -643,7 +643,7 @@ namespace ADLMRateGen.ViewModel.Finishes
         private FinishesItem ComputeItem1()
         {
             double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 1, "Mortar 12mm thick (See Blockwork)", 1);
-            double mortarCost = GetBlockworkNetValue(_blockworkViewModel.ComputeItem2) *0.012;
+            double mortarCost = GetBlockworkNetValue(_blockworkViewModel.ComputeItem2) * MortarMix.RenderPerSqM;
             double mortarLineTotal = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 1, "Add waste", 5);
             double mortarWaste = mortarLineTotal * (mortarWastePer / 100);
@@ -806,7 +806,7 @@ namespace ADLMRateGen.ViewModel.Finishes
         private FinishesItem ComputeItem4()
         {
             double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 4, "Mortar 15-19mm thick (See Blockwork)", 1);
-            double mortarCost = GetBlockworkNetValue(_blockworkViewModel.ComputeItem2) * 0.012;
+            double mortarCost = GetBlockworkNetValue(_blockworkViewModel.ComputeItem2) * MortarMix.RenderPerSqM;
             double mortarLineTotal = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 4, "Add waste", 10);
             double mortarWaste = mortarLineTotal * (mortarWastePer / 100);

@@ -665,7 +665,8 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double waste = totalMaterialCost * (wastePer / 100);
             double finalMaterialCost = totalMaterialCost + waste;
 
-            double materialCostPerCum = finalMaterialCost / 4;
+            // Dry material shrinks when mixed: a 4 m3 batch yields about 2.96 m3 of mortar.
+            double materialCostPerCum = finalMaterialCost / MortarMix.WetYield(4);
 
             //LABOUR COST
             double mixerCost = GetLabourRate("Concrete mixer 10/7");
@@ -739,7 +740,8 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double waste = totalMaterialCost * (wastePer / 100);
             double finalMaterialCost = totalMaterialCost + waste;
 
-            double materialCostPerCum = finalMaterialCost / 5;
+            // Dry material shrinks when mixed: a 5 m3 batch yields about 3.70 m3 of mortar.
+            double materialCostPerCum = finalMaterialCost / MortarMix.WetYield(5);
 
             //LABOUR COST
             double mixerCost = GetLabourRate("Concrete mixer 10/7");
@@ -813,7 +815,8 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double waste = totalMaterialCost * (wastePer / 100);
             double finalMaterialCost = totalMaterialCost + waste;
 
-            double materialCostPerCum = finalMaterialCost / 7;
+            // Dry material shrinks when mixed: a 7 m3 batch yields about 5.19 m3 of mortar.
+            double materialCostPerCum = finalMaterialCost / MortarMix.WetYield(7);
 
             //LABOUR COST
             double mixerCost = GetLabourRate("Concrete mixer 10/7");
@@ -887,7 +890,8 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double waste = totalMaterialCost * (wastePer / 100);
             double finalMaterialCost = totalMaterialCost + waste;
 
-            double materialCostPerCum = finalMaterialCost / 2;
+            // Dry material shrinks when mixed: a 2 m3 batch yields about 1.48 m3 of mortar.
+            double materialCostPerCum = finalMaterialCost / MortarMix.WetYield(2);
 
             //LABOUR COST
             double mixerCost = GetLabourRate("Concrete mixer 10/7");
@@ -961,7 +965,8 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double waste = totalMaterialCost * (wastePer / 100);
             double finalMaterialCost = totalMaterialCost + waste;
 
-            double materialCostPerCum = finalMaterialCost / 13;
+            // Dry material shrinks when mixed: a 13 m3 batch yields about 9.63 m3 of mortar.
+            double materialCostPerCum = finalMaterialCost / MortarMix.WetYield(13);
 
             //LABOUR COST
             double mixerCost = GetLabourRate("Concrete mixer 10/7");
@@ -1033,7 +1038,7 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double finalMaterialCost = totalMaterialCost + waste+ blockLoadingCost;
 
             double mortarCost = GetNetValue(ComputeItem4);
-            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 7, "Mortar per square meter", 0.013);
+            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 7, "Mortar per square meter", MortarMix.PerSqM225);
             double totalMortarCost = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 7, "Add for waste.", 5);
             double mortarWaste = totalMortarCost * (mortarWastePer / 100);
@@ -1157,7 +1162,7 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double finalMaterialCost = totalMaterialCost + waste + blockLoadingCost;
 
             double mortarCost = GetNetValue(ComputeItem4);
-            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 9, "Mortar per square meter", 0.0084);
+            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 9, "Mortar per square meter", MortarMix.PerSqM150);
             double totalMortarCost = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 9, "Add for waste.", 5);
             double mortarWaste = totalMortarCost * (mortarWastePer / 100);
@@ -1280,7 +1285,7 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double finalMaterialCost = totalMaterialCost + waste + blockLoadingCost;
 
             double mortarCost = GetNetValue(ComputeItem4);
-            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 11, "Mortar per square meter", 0.0058);
+            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 11, "Mortar per square meter", MortarMix.PerSqM100);
             double totalMortarCost = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 11, "Add for waste.", 5);
             double mortarWaste = totalMortarCost * (mortarWastePer / 100);
@@ -1403,7 +1408,7 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double finalMaterialCost = totalMaterialCost + waste + blockLoadingCost;
 
             double mortarCost = GetNetValue(ComputeItem3);
-            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 13, "Mortar per square meter", 0.013);
+            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 13, "Mortar per square meter", MortarMix.PerSqM225);
             double totalMortarCost = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 13, "Add for waste.", 5);
             double mortarWaste = totalMortarCost * (mortarWastePer / 100);
@@ -1478,7 +1483,7 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double finalMaterialCost = totalMaterialCost + waste + blockLoadingCost;
 
             double mortarCost = GetNetValue(ComputeItem3);
-            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 14, "Mortar per square meter", 0.0084);
+            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 14, "Mortar per square meter", MortarMix.PerSqM150);
             double totalMortarCost = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 14, "Add for waste.", 5);
             double mortarWaste = totalMortarCost * (mortarWastePer / 100);
@@ -1553,7 +1558,7 @@ namespace ADLMRateGen.ViewModel.BlockWork
             double finalMaterialCost = totalMaterialCost + waste + blockLoadingCost;
 
             double mortarCost = GetNetValue(ComputeItem3);
-            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 15, "Mortar per square meter", 0.0058);
+            double mortarQty = UserRateEditStore.Current.Qty(SectionKey, 15, "Mortar per square meter", MortarMix.PerSqM100);
             double totalMortarCost = mortarCost * mortarQty;
             double mortarWastePer = UserRateEditStore.Current.Qty(SectionKey, 15, "Add for waste.", 5);
             double mortarWaste = totalMortarCost * (mortarWastePer / 100);
