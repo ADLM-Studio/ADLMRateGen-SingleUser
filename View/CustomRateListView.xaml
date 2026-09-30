@@ -81,10 +81,10 @@
                     </Button>
                 </Grid>
 
-                <DataGrid x:Name="Table" Grid.Row="1" Style="{StaticResource SxTable}"
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DataGrid x:Name="Table" MinWidth="900" Style="{StaticResource SxTable}"
                           ItemsSource="{Binding RatesView}"
-                          SelectedItem="{Binding SelectedRate}"
-                          HorizontalScrollBarVisibility="Auto">
+                          SelectedItem="{Binding SelectedRate}">
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="TITLE" Width="*" MinWidth="160">
                             <DataGridTemplateColumn.CellTemplate>
@@ -138,6 +138,7 @@
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
+                </ScrollViewer>
 
                 <!-- Empty is a state: say why, in the table's place -->
                 <TextBlock Grid.Row="1" VerticalAlignment="Top" Margin="0,56,0,0">

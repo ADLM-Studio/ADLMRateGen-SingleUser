@@ -52,6 +52,7 @@ namespace ADLMRateGen.View.Suite
         private void Reflow(double width)
         {
             bool narrow = width < 760;
+            Bar.ColumnDefinitions[2].MinWidth = narrow ? 0 : 180;
             Grid.SetRow(FindBox, narrow ? 1 : 0);
             Grid.SetColumn(FindBox, narrow ? 0 : 2);
             Grid.SetColumnSpan(FindBox, narrow ? 3 : 1);

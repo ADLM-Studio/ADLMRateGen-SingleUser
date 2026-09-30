@@ -98,7 +98,7 @@
                                         </TextBlock>
                                 <!-- Every quantity is editable: plant output and labour
                                      outputs are the figures that change from job to job. -->
-                                <TextBox Grid.Column="1"
+                                <TextBox Grid.Column="1" Height="32" Padding="10,0" VerticalContentAlignment="Center"
                                          Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.####}}"
                                          LostFocus="QuantityTextBox_LostFocus"
                                          KeyDown="QuantityTextBox_KeyDown"
@@ -135,8 +135,19 @@
                                 </TextBlock>
                                         <TextBlock Grid.Column="2" Style="{StaticResource SxCellMuted}" Padding="12,0,0,0"
                                                    VerticalAlignment="Center" Text="{Binding Unit}" />
-                                        <TextBlock Grid.Column="3" Style="{StaticResource SxCellNum}" VerticalAlignment="Center"
-                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}}" />
+                                        <!-- A sum or a percentage has no unit price; show nothing rather than 0.00 -->
+                                        <TextBlock Grid.Column="3" VerticalAlignment="Center"
+                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UnitPrice}" Value="0">
+                                                            <Setter Property="Visibility" Value="Hidden" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                         <TextBlock Grid.Column="4" Style="{StaticResource SxCellNumB}" VerticalAlignment="Center"
                                                    Text="{Binding TotalPrice, Converter={StaticResource MoneyConv}}" />
                                     </Grid>

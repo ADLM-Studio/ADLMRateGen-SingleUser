@@ -20,7 +20,7 @@
                      banner's height; the card is as tall as its words. -->
                 <Rectangle x:Name="Art" HorizontalAlignment="Right" RadiusX="18" RadiusY="18">
                     <Rectangle.Fill>
-                        <ImageBrush ImageSource="/Resources/Suite/bg-rategen.jpg" Stretch="UniformToFill"
+                        <ImageBrush ImageSource="/ADLMRateGen;component/Resources/Suite/bg-rategen.jpg" Stretch="UniformToFill"
                                     AlignmentX="Right" AlignmentY="Center" />
                     </Rectangle.Fill>
                     <Rectangle.OpacityMask>
@@ -123,7 +123,7 @@
         </Border>
 
         <!-- RateGen's badge, overhanging the left edge -->
-        <Image x:Name="Badge" Source="/Resources/Suite/ic-rategen.png" Width="76" Height="76"
+        <Image x:Name="Badge" Source="/ADLMRateGen;component/Resources/Suite/ic-rategen.png" Width="76" Height="76"
                HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-18,0,0,0"
                RenderOptions.BitmapScalingMode="HighQuality">
             <Image.Effect>

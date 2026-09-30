@@ -285,7 +285,8 @@ namespace ADLMRateGen.ViewModel.MepWork
 			=> Build(section, description, unit, parts, Array.Empty<(string, double, string)>());
 
 		/// <summary>
-		/// A rate built from SUPPLY prices plus the labour to fix them, for the
+		/// A rate built from SUPPLY prices plus the labour to fix them (materials
+		/// listed first, then labour, as the builder lists them), for the
 		/// catalogue rows priced supply-only (plumbing pipework, valves, drainage).
 		/// These are the one place in services where labour is added, because the
 		/// price does not already include it. Outputs are the library's own, from
@@ -298,22 +299,6 @@ namespace ADLMRateGen.ViewModel.MepWork
 			int itemNo = ++_itemNo;
 			var lines = new ObservableCollection<MepWorkBreakdownLine>();
 			double net = 0;
-
-			foreach (var (labourName, defaultQty, qtyUnit) in labour)
-			{
-				double qty = Services.UserRateEditStore.Current.Qty(SectionKey, itemNo, labourName, defaultQty);
-				double rate = _helper.GetLabourRate(labourName);
-				double total = rate * qty;
-				net += total;
-				lines.Add(new MepWorkBreakdownLine
-				{
-					ComponentName = labourName,
-					Quantity = qty,
-					Unit = qtyUnit,
-					UnitPrice = rate,
-					TotalPrice = total
-				});
-			}
 
 			foreach (var (catalogName, defaultQty, qtyUnit) in parts)
 			{
@@ -329,6 +314,22 @@ namespace ADLMRateGen.ViewModel.MepWork
 					Quantity = qty,
 					Unit = qtyUnit,
 					UnitPrice = unitPrice,
+					TotalPrice = total
+				});
+			}
+
+			foreach (var (labourName, defaultQty, qtyUnit) in labour)
+			{
+				double qty = Services.UserRateEditStore.Current.Qty(SectionKey, itemNo, labourName, defaultQty);
+				double rate = _helper.GetLabourRate(labourName);
+				double total = rate * qty;
+				net += total;
+				lines.Add(new MepWorkBreakdownLine
+				{
+					ComponentName = labourName,
+					Quantity = qty,
+					Unit = qtyUnit,
+					UnitPrice = rate,
 					TotalPrice = total
 				});
 			}

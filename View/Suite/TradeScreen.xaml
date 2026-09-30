@@ -98,11 +98,13 @@
                     </ComboBox>
                 </Grid>
 
-                <DataGrid x:Name="Table" Grid.Row="1" Style="{StaticResource SxTable}"
+                <!-- The design's .rg-tw: the table keeps a 900px minimum and scrolls
+                     sideways inside the card when the window is narrower. -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DataGrid x:Name="Table" MinWidth="900" Style="{StaticResource SxTable}"
                           ItemsSource="{Binding Items, ElementName=Root}"
                           PreviewMouseLeftButtonUp="Table_PreviewMouseLeftButtonUp"
-                          PreviewKeyDown="Table_PreviewKeyDown"
-                          HorizontalScrollBarVisibility="Auto">
+                          PreviewKeyDown="Table_PreviewKeyDown">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="S/N" Binding="{Binding ItemNo}" Width="56"
                                             ElementStyle="{StaticResource SxCellMuted}" />
@@ -134,6 +136,7 @@
                                             ElementStyle="{StaticResource SxCellNumB}" />
                     </DataGrid.Columns>
                 </DataGrid>
+                </ScrollViewer>
 
                 <!-- Empty is a state: say why, in the table's place -->
                 <TextBlock x:Name="None" Grid.Row="1" Style="{StaticResource SxNone}" VerticalAlignment="Top"

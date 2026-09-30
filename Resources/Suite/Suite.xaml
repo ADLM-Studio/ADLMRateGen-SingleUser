@@ -11,7 +11,7 @@
          theme files, always as DynamicResource, so light and dark swap together. -->
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/Resources/Suite/SuiteArt.xaml" />
+        <ResourceDictionary Source="/ADLMRateGen;component/Resources/Suite/SuiteArt.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <!-- RateGen needs a few glyphs the suite set does not carry yet. Drawn to the
@@ -334,8 +334,10 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="10" SnapsToDevicePixels="True">
-                        <Grid Margin="{TemplateBinding Padding}">
-                            <TextBlock x:Name="Ph" Text="{TemplateBinding Tag}"
+                        <!-- TextBox applies Padding to its own text itself; only the
+                             placeholder needs it here (plus the caret's 2px). -->
+                        <Grid>
+                            <TextBlock x:Name="Ph" Text="{TemplateBinding Tag}" Padding="{TemplateBinding Padding}" Margin="2,0,0,0"
                                        FontFamily="{TemplateBinding FontFamily}"
                                        FontSize="{TemplateBinding FontSize}"
                                        Foreground="{DynamicResource SxInk3}"

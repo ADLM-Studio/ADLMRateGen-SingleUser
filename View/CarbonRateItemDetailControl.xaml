@@ -101,8 +101,19 @@
                                            Text="{Binding Quantity, StringFormat={}{0:0.####}}" />
                                         <TextBlock Grid.Column="2" Style="{StaticResource SxCellMuted}" Padding="12,0,0,0"
                                                    VerticalAlignment="Center" Text="{Binding Unit}" />
-                                        <TextBlock Grid.Column="3" Style="{StaticResource SxCellNum}" VerticalAlignment="Center"
-                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}}" />
+                                        <!-- A sum or a percentage has no unit price; show nothing rather than 0.00 -->
+                                        <TextBlock Grid.Column="3" VerticalAlignment="Center"
+                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UnitPrice}" Value="0">
+                                                            <Setter Property="Visibility" Value="Hidden" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                         <TextBlock Grid.Column="4" Style="{StaticResource SxCellNumB}" VerticalAlignment="Center"
                                                    Text="{Binding TotalPrice, Converter={StaticResource MoneyConv}}" />
                                     </Grid>
