@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -69,7 +69,7 @@ namespace ADLMRateGen.ViewModel
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(pass))
             {
-                MessageBox.Show("Please enter your username/email and password.");
+                ADLMRateGen.Helpers.AppMessage.Show("Please enter your username/email and password.");
                 return;
             }
 
@@ -92,11 +92,11 @@ namespace ADLMRateGen.ViewModel
 
                     LoginSucceeded?.Invoke(this, new LoginEventArgs(user) { AccessToken = string.Empty });
 
-                    MessageBox.Show("Signed in (offline) via cached license.");
+                    ADLMRateGen.Helpers.AppMessage.Show("Signed in (offline) via cached license.");
                     return;
                 }
 
-                MessageBox.Show("Internet required for first sign-in (no valid offline license found).");
+                ADLMRateGen.Helpers.AppMessage.Show("Internet required for first sign-in (no valid offline license found).");
                 return;
             }
 
@@ -108,7 +108,7 @@ namespace ADLMRateGen.ViewModel
                 var ok = await _auth.LoginAsync(identifier: email, password: pass);
                 if (!ok)
                 {
-                    MessageBox.Show("Sign in failed. Please verify your credentials.", "Sign in failed",
+                    ADLMRateGen.Helpers.AppMessage.Show("Sign in failed. Please verify your credentials.", "Sign in failed",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -127,7 +127,7 @@ namespace ADLMRateGen.ViewModel
                     AccessToken = _auth.AccessToken
                 });
 
-                MessageBox.Show("Sign in successful!");
+                ADLMRateGen.Helpers.AppMessage.Show("Sign in successful!");
 
                 try
                 {
@@ -135,18 +135,18 @@ namespace ADLMRateGen.ViewModel
                 }
                 catch (Exception zx)
                 {
-                    MessageBox.Show("Signed in, but zone sync failed: " + zx.Message, "Zone Sync",
+                    ADLMRateGen.Helpers.AppMessage.Show("Signed in, but zone sync failed: " + zx.Message, "Zone Sync",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show(ex.Message, "Sign in failed",
+                ADLMRateGen.Helpers.AppMessage.Show(ex.Message, "Sign in failed",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Login Error: " + ex.Message, "Unexpected error",
+                ADLMRateGen.Helpers.AppMessage.Show("Login Error: " + ex.Message, "Unexpected error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -167,7 +167,7 @@ namespace ADLMRateGen.ViewModel
 
                 if (string.IsNullOrWhiteSpace(serverZone))
                 {
-                    MessageBox.Show("Your profile does not have a zone assigned.");
+                    ADLMRateGen.Helpers.AppMessage.Show("Your profile does not have a zone assigned.");
                     return;
                 }
 
@@ -176,7 +176,7 @@ namespace ADLMRateGen.ViewModel
 
                 if (zoneChanged)
                 {
-                    var resp = MessageBox.Show(
+                    var resp = ADLMRateGen.Helpers.AppMessage.Show(
                         "Your account zone is '" + serverZone + "'. Update your RateGen prices to this zone now?",
                         "Update prices for location",
                         MessageBoxButton.YesNo,
@@ -204,7 +204,7 @@ namespace ADLMRateGen.ViewModel
                 ZonePricesApplied?.Invoke(serverZone);
 
                 if (zoneChanged)
-                    MessageBox.Show("Prices updated for zone: " + serverZone);
+                    ADLMRateGen.Helpers.AppMessage.Show("Prices updated for zone: " + serverZone);
             }
         }
 

@@ -1,4 +1,4 @@
-using ADLMRateGen.Services;
+﻿using ADLMRateGen.Services;
 using ADLMRateGen.ViewModel;
 using ADLMRateGen.ViewModel.ConcreteWork;
 using System;
@@ -48,10 +48,18 @@ namespace ADLMRateGen.View
         /// so the sub-totals refresh immediately in the popup. Also reverts the box to read-only
         /// display mode.
         /// </summary>
+        private void QuantityTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter || sender is not TextBox tb) return;
+            tb.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+            QuantityTextBox_LostFocus(sender, e);
+            tb.SelectAll();
+            e.Handled = true;
+        }
+
         private void QuantityTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (sender is not TextBox tb) return;
-            tb.IsReadOnly = true; // back to display mode
 
             if (tb.DataContext is not ConcreteworkBreakdownLine line) return;
             if (DataContext is not ConcreteworkItem item) return;
@@ -79,11 +87,9 @@ namespace ADLMRateGen.View
             var ok = await RateEditCommands.SaveAsync();
             if (ok)
             {
-                MessageBox.Show(
-                    "Rate saved successfully. Your edits will sync to QUIV and HERON.",
-                    "Saved",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                Suite.SuiteDialog.Tell("Rate saved",
+                    "Your quantities are kept on this PC and used everywhere this rate appears. They sync to QUIV and HERON.",
+                    Suite.SuiteDialog.Tone.Success);
             }
         }
 
@@ -91,13 +97,9 @@ namespace ADLMRateGen.View
         {
             if (DataContext is not ConcreteworkItem item) return;
 
-            var confirm = MessageBox.Show(
-                $"Reset all edited quantities on Item {item.ItemNo} back to the shipped defaults?\n\n" +
-                "This will sync the reset to QUIV and HERON.",
-                "Reset This Rate",
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Question);
-            if (confirm != MessageBoxResult.OK) return;
+            if (!Suite.SuiteDialog.Ask("Reset this rate?",
+                $"Every quantity in item {item.ItemNo} goes back to what ADLM published. The reset syncs to QUIV and HERON.",
+                "Reset", "Cancel", Suite.SuiteDialog.Tone.Warning)) return;
 
             await RateEditCommands.ResetItemAsync(SectionKeys.Concrete, item.ItemNo);
             // OverridesChanged fires inside ResetItemAsync → in-place recompute happens

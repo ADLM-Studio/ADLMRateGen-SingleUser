@@ -1,180 +1,126 @@
-<UserControl x:Class="ADLMRateGen.View.CarbonRateItemDetailControl"
+﻿<UserControl x:Class="ADLMRateGen.View.CarbonRateItemDetailControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="700" d:DesignWidth="820">
-
-    <Border Background="{DynamicResource BackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrushLight}"
-            BorderThickness="1"
-            CornerRadius="24"
-            Padding="56,54"
-            SnapsToDevicePixels="True"
-            MaxHeight="700">
-
+             Tag="SxSheet"
+             d:DesignHeight="640" d:DesignWidth="820">
+    <!-- Rate Composition (Richard's design, 30 Sep 2026): opening a rate shows
+         what it is made of. One layout for every trade; this file differs from
+         its siblings only in the class and the breakdown it lists. -->
+    <Border Style="{StaticResource SxSheet}" MinWidth="520" MaxWidth="820" MaxHeight="760">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Margin="0,0,0,37">
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                    <Button Click="BackButton_Click" Cursor="Hand"
-                            VerticalAlignment="Center" Margin="0,0,5,0">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Path Data="M15,3 L6,12 L15,21"
-                                      Stroke="{DynamicResource HintGrey}" StrokeThickness="2.5"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"
-                                      Width="26" Height="26"
-                                      Stretch="Uniform" Margin="4" />
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                    <TextBlock Text="Rate Composition"
-                               FontFamily="{DynamicResource Mont}"
-                               FontSize="36" FontWeight="Bold"
-                               Foreground="{DynamicResource HintGrey}" />
-                </StackPanel>
+            <!-- Head: back, title, close -->
+            <DockPanel Margin="24,24,24,16">
+                <Button DockPanel.Dock="Left" Style="{StaticResource SxSheetBtn}" Content="‹"
+                        Click="BackButton_Click" ToolTip="Back to the table" Margin="0,0,10,0" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource SxSheetBtn}" Content="×"
+                        Click="BackButton_Click" ToolTip="Close" />
+                <TextBlock Style="{StaticResource SxH2}" Text="Rate Composition" VerticalAlignment="Center" />
+            </DockPanel>
 
-                <TextBlock Text="{Binding Description}"
-                           FontFamily="{DynamicResource Mont}"
-                           FontSize="20" FontWeight="SemiBold"
-                           Foreground="{DynamicResource Blue900Brush}"
-                           TextWrapping="Wrap"
-                           MaxWidth="664"
-                           HorizontalAlignment="Left" />
-            </StackPanel>
-
-            <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,0,24,24">
                 <StackPanel>
-                    <Border Background="{DynamicResource HeaderBgBrush}" Padding="10">
+                    <TextBlock Style="{StaticResource SxText}" FontSize="15" FontWeight="SemiBold" LineHeight="23"
+                               TextWrapping="Wrap" Margin="0,0,0,16" Text="{Binding Description}" />
+
+                    <Border BorderBrush="{DynamicResource SxLine2}" BorderThickness="0,0,0,1" Padding="10,0,10,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="90" />
-                                <ColumnDefinition Width="70" />
                                 <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="140" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Component"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" Padding="10,0" />
-                            <TextBlock Grid.Column="1" Text="Quantity"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
-                            <TextBlock Grid.Column="2" Text="Unit"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
-                            <TextBlock Grid.Column="3" Text="Unit Price"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
-                            <TextBlock Grid.Column="4" Text="Total Cost"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
+                            <TextBlock Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="COMPONENT" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="QUANTITY" TextAlignment="Right" Padding="0,0,11,0" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="UNIT" Padding="12,0,0,0" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="UNIT PRICE" TextAlignment="Right" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="AMOUNT" TextAlignment="Right" />
                         </Grid>
                     </Border>
 
                     <ItemsControl ItemsSource="{Binding BreakdownLines}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <Grid Margin="0,10">
+                                <Border BorderBrush="{DynamicResource SxLine}" BorderThickness="0,0,0,1" Padding="10,8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource SxBgAlt}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid MinHeight="34">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="90" />
-                                            <ColumnDefinition Width="70" />
                                             <ColumnDefinition Width="110" />
-                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="140" />
                                         </Grid.ColumnDefinitions>
-                                        <!-- The component name opens the library at the row it is
-                                             priced from. A rate that looks wrong is nearly always
-                                             one line that is wrong, and hunting 600 rows by eye to
-                                             find it is the slow part. Rendered as a plain TextBlock
-                                             when there is nothing to open, so the overhead, profit
-                                             and uplift rows do not look clickable. -->
-                                        <Grid Grid.Column="0">
-                                            <Button Padding="10,0"
-                                                    HorizontalContentAlignment="Left"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Cursor="Hand"
-                                                    Command="{Binding OpenInLibraryCommand}"
-                                                    CommandParameter="{Binding ComponentName}"
-                                                    ToolTip="Open this item in the library to see or change its price"
-                                                    Visibility="{Binding CanOpenInLibrary, Converter={StaticResource BoolVis}}">
-                                                <TextBlock Text="{Binding ComponentName}"
-                                                           FontFamily="{DynamicResource PoppinsFont}"
-                                                           FontSize="16"
-                                                           Foreground="{DynamicResource Blue900Brush}"
-                                                           TextDecorations="Underline"
-                                                           TextWrapping="Wrap" />
-                                            </Button>
-
-                                            <TextBlock Text="{Binding ComponentName}"
-                                                       FontFamily="{DynamicResource PoppinsFont}"
-                                                       FontSize="16" Foreground="{DynamicResource Blue900Brush}"
-                                                       TextWrapping="Wrap" Padding="10,0"
-                                                       Visibility="{Binding CanOpenInLibrary, Converter={StaticResource InvBoolVis}}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="FontWeight" Value="Normal" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
-                                                                <Setter Property="FontWeight" Value="Bold" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </Grid>
-                                        <TextBlock Grid.Column="1"
-                                                   Text="{Binding Quantity}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="2"
-                                                   Text="{Binding Unit}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="3"
-                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}, StringFormat=N2}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="4"
-                                                   Text="{Binding TotalPrice, Converter={StaticResource MoneyConv}, StringFormat=N2}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
+                                        <!-- A component that is a library item opens the library at
+                                             its row; totals and percentages do not look clickable. -->
+                                        <TextBlock Text="{Binding ComponentName}" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock.InputBindings>
+                                                <MouseBinding MouseAction="LeftClick"
+                                                              Command="{Binding OpenInLibraryCommand}"
+                                                              CommandParameter="{Binding ComponentName}" />
+                                            </TextBlock.InputBindings>
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource SxCell}">
+                                                    <Setter Property="FontSize" Value="13.5" />
+                                                    <Setter Property="FontWeight" Value="Medium" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CanOpenInLibrary}" Value="True">
+                                                            <Setter Property="Cursor" Value="Hand" />
+                                                            <Setter Property="ToolTip" Value="Open this in the library" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                <TextBlock Grid.Column="1" Padding="0,0,11,0" VerticalAlignment="Center"
+                                           Style="{StaticResource SxCellNum}"
+                                           Text="{Binding Quantity, StringFormat={}{0:0.####}}" />
+                                        <TextBlock Grid.Column="2" Style="{StaticResource SxCellMuted}" Padding="12,0,0,0"
+                                                   VerticalAlignment="Center" Text="{Binding Unit}" />
+                                        <TextBlock Grid.Column="3" Style="{StaticResource SxCellNum}" VerticalAlignment="Center"
+                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}}" />
+                                        <TextBlock Grid.Column="4" Style="{StaticResource SxCellNumB}" VerticalAlignment="Center"
+                                                   Text="{Binding TotalPrice, Converter={StaticResource MoneyConv}}" />
                                     </Grid>
-                                    <Rectangle Height="1.5" Fill="{DynamicResource DivBrush}" />
-                                </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
+
+                <Border Grid.Row="2" Style="{StaticResource SxSheetFoot}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource SxBtn}" Content="Close"
+                                Click="BackButton_Click" />
+                        <TextBlock Style="{StaticResource SxMuted}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Published by ADLM from the cloud library. Its build-up is shown as issued and is read-only here." />
+                    </DockPanel>
+                </Border>
         </Grid>
     </Border>
 </UserControl>

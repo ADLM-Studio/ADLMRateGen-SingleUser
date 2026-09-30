@@ -392,6 +392,21 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
                     }
                 }
 
+                // A rate ADLM published without its build-up still opens to
+                // something true: one line saying what it is, rather than an
+                // empty composition that looks like a fault.
+                if (breakdown.Count == 0)
+                {
+                    breakdown.Add(new CarbonRateBreakdownLine
+                    {
+                        ComponentName = "Rate as published by ADLM (no build-up supplied)",
+                        Quantity = 1,
+                        Unit = string.IsNullOrWhiteSpace(r.Unit) ? "m2" : r.Unit!,
+                        UnitPrice = net,
+                        TotalPrice = net
+                    });
+                }
+
                 Items.Add(new CarbonRateItem
                 {
                     ItemNo = nextNo++,

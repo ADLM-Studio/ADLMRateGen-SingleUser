@@ -1,0 +1,36 @@
+﻿<UserControl x:Class="ADLMRateGen.View.Suite.SuiteProgress"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- ADLM.progress(host, steps) in the desktop app (Richard's loading system,
+         30 Sep 2026). The bar moves because a step finished, not because time
+         passed, and the label names the step. Between steps it creeps, but it can
+         never cross into the next step, so it cannot claim to be further on than
+         it is. With no steps it is ADLM.spinner: one labelled pulse. -->
+    <StackPanel>
+        <DockPanel Margin="0,0,0,8">
+            <TextBlock x:Name="Counter" DockPanel.Dock="Right" Style="{StaticResource SxMuted}" FontSize="11.5"
+                       VerticalAlignment="Bottom" Margin="12,0,0,0" />
+            <TextBlock x:Name="Label" Style="{StaticResource SxText}" FontSize="13" FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+        </DockPanel>
+        <Border x:Name="Track" Height="6" CornerRadius="3" Background="{DynamicResource SxBgInset}" ClipToBounds="True">
+            <Border x:Name="Fill" HorizontalAlignment="Left" Width="0" CornerRadius="3"
+                    Background="{DynamicResource SxActionGrad}" />
+        </Border>
+        <TextBlock x:Name="Detail" Style="{StaticResource SxMuted}" FontSize="11.5" Margin="0,8,0,0"
+                   Visibility="Collapsed" />
+        <!-- The named steps, ticked as they finish -->
+        <ItemsControl x:Name="StepList" Margin="0,12,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                        <TextBlock Width="18" Text="{Binding Mark}" Foreground="{DynamicResource SxAction}"
+                                   FontFamily="{StaticResource SxFont}" FontSize="12" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Name}" FontFamily="{StaticResource SxFont}" FontSize="12"
+                                   Opacity="{Binding Opacity}" Foreground="{DynamicResource SxInk2}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

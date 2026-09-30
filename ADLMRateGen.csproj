@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\ADLM Rate Generator Plugin.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- v2.6.2: The library merge no longer keys on the material/labour name.
          Keying threw on the first duplicate — and the shipped defaults carry
          500 rows for 477 names — so harvesting on save silently did nothing,
@@ -102,6 +103,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\ADLMRate.ico" />
+    <!-- The suite banner: RateGen's badge and artwork, from the design repo. -->
+    <Resource Include="Resources\Suite\ic-rategen.png" />
+    <Resource Include="Resources\Suite\bg-rategen.jpg" />
     <Resource Include="Resources\adlm_badge.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>

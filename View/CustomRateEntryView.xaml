@@ -1,301 +1,93 @@
-<UserControl x:Class="ADLMRateGen.View.CustomRateEntryView"
+﻿<UserControl x:Class="ADLMRateGen.View.CustomRateEntryView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:ADLMRateGen.View"
+             xmlns:suite="clr-namespace:ADLMRateGen.View.Suite"
              mc:Ignorable="d"
-             d:DesignHeight="800"
-             d:DesignWidth="860"
-             MinWidth="760">
-
+             d:DesignHeight="800" d:DesignWidth="1080">
+    <!-- Build New Custom Rate (Richard's design, 30 Sep 2026; builder() in
+         rategen-app.js). Name it, set overhead and profit, then list what goes
+         into it - from scratch, or drafted by ADLM AI from a sentence. Custom
+         rates are created here and only here, and stay on this PC. -->
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- ─── Label ─── -->
-        <Style x:Key="FLabel" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="12.8" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource HintGrey}" />
+        <Style x:Key="RowLabel" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+            <Setter Property="Margin" Value="0,0,0,3" />
         </Style>
 
-        <!-- ─── Input ─── -->
-        <Style x:Key="FInput" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource BgInput}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushLight}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
+        <!-- The name picker: an editable field in the suite's outline, with the
+             library's own items underneath it -->
+        <Style x:Key="PickCombo" TargetType="ComboBox">
+            <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="Padding" Value="18,12" />
-            <Setter Property="CaretBrush" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12" SnapsToDevicePixels="True"
-                                Padding="{TemplateBinding Padding}">
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                          Focusable="False"
-                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="{DynamicResource ButCol}" />
-                </Trigger>
-                <!-- Only ever fires for the AI prompt box, which is disabled while a
-                     request is in flight; the other FInput fields are never disabled. -->
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Opacity" Value="0.55" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- ─── Small input for item rows ─── -->
-        <Style x:Key="FInputSmall" TargetType="TextBox" BasedOn="{StaticResource FInput}">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Padding" Value="8,8" />
-            <Setter Property="MinHeight" Value="36" />
-        </Style>
-
-        <!-- ─── Overhead/Profit input with teal border ─── -->
-        <Style x:Key="FInputOHP" TargetType="TextBox" BasedOn="{StaticResource FInput}">
-            <Setter Property="Background" Value="{DynamicResource LighterGrayBrush}" />
-            <Setter Property="BorderBrush" Value="#1D94CA" />
-            <Setter Property="BorderThickness" Value="1.4" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <!-- No fixed Height and no vertical Padding. FInput's template hangs
-                 Padding off the Border around a vertically-centred
-                 PART_ContentHost, so with Height="44" the 10px top/bottom padding
-                 left ~23px of content slot and clipped the text out of sight.
-                 MinHeight keeps the box tall while letting the line always fit. -->
-            <Setter Property="Padding" Value="14,0,34,0" />
-            <Setter Property="MinHeight" Value="46" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
-
-        <!-- ─── Small hint label ─── -->
-        <Style x:Key="FLabelSmall" TargetType="TextBlock" BasedOn="{StaticResource FLabel}">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="Margin" Value="0,0,0,4" />
-        </Style>
-
-        <!-- ─── Combo for material/labour name picker ─── -->
-        <Style x:Key="FComboSmall" TargetType="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource BgInput}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushLight}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="MinHeight" Value="36" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+            <Setter Property="Background" Value="{DynamicResource SxBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+            <Setter Property="Padding" Value="11,8" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
                         <Grid>
-                            <Border x:Name="ComboBorder"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="12"
-                                    SnapsToDevicePixels="True">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                    CornerRadius="9" SnapsToDevicePixels="True">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="28" />
                                     </Grid.ColumnDefinitions>
-
-                                    <TextBox x:Name="PART_EditableTextBox"
-                                             IsReadOnly="{TemplateBinding IsReadOnly}"
-                                             Background="Transparent"
-                                             BorderThickness="0"
-                                             Foreground="{TemplateBinding Foreground}"
-                                             FontFamily="{TemplateBinding FontFamily}"
-                                             FontSize="{TemplateBinding FontSize}"
-                                             Padding="{TemplateBinding Padding}"
-                                             TextWrapping="Wrap"
-                                             VerticalContentAlignment="Center"
-                                             HorizontalAlignment="Stretch"
-                                             CaretBrush="{DynamicResource Blue900Brush}" />
-
-                                    <ToggleButton Grid.Column="0" Grid.ColumnSpan="2"
-                                                  IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                                  Background="Transparent"
-                                                  BorderThickness="0"
-                                                  Focusable="False"
-                                                  ClickMode="Press">
+                                    <ToggleButton Grid.ColumnSpan="2" Focusable="False" ClickMode="Press"
+                                                  IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                                         <ToggleButton.Template>
                                             <ControlTemplate TargetType="ToggleButton">
                                                 <Grid Background="Transparent">
-                                                    <Path x:Name="Arrow"
-                                                          Data="M 0,0 L 5,5 L 10,0"
-                                                          Stroke="{DynamicResource Grey700}"
-                                                          StrokeThickness="1.5"
-                                                          HorizontalAlignment="Right"
-                                                          VerticalAlignment="Center"
-                                                          Margin="0,0,12,0" />
+                                                    <Path Data="M0,0 L4.5,4.5 L9,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                          Margin="0,0,11,0" Stroke="{DynamicResource SxInk3}" StrokeThickness="1.6"
+                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                                                 </Grid>
                                             </ControlTemplate>
                                         </ToggleButton.Template>
                                     </ToggleButton>
+                                    <TextBox x:Name="PART_EditableTextBox" Background="Transparent" BorderThickness="0"
+                                             IsReadOnly="{TemplateBinding IsReadOnly}"
+                                             Foreground="{TemplateBinding Foreground}" CaretBrush="{DynamicResource SxInk}"
+                                             FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
+                                             Padding="{TemplateBinding Padding}" VerticalContentAlignment="Center" />
                                 </Grid>
                             </Border>
-
-                            <Popup x:Name="PART_Popup"
-                                   IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   Placement="Bottom"
-                                   AllowsTransparency="True"
-                                   PopupAnimation="Slide"
-                                   Focusable="False">
-                                <Border x:Name="DropDownBorder"
-                                        Background="{DynamicResource BackgroundBrush}"
-                                        BorderBrush="{DynamicResource BorderBrushLight}"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Margin="0,4,0,0"
-                                        MinWidth="{TemplateBinding ActualWidth}"
-                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                        SnapsToDevicePixels="True">
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Fade" VerticalOffset="4">
+                                <Border Background="{DynamicResource SxBg}" BorderBrush="{DynamicResource SxLine2}"
+                                        BorderThickness="1" CornerRadius="10" Padding="4"
+                                        MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                     <Border.Effect>
-                                        <DropShadowEffect BlurRadius="12" ShadowDepth="2"
-                                                          Color="#000000" Opacity="0.10" Direction="270" />
+                                        <DropShadowEffect BlurRadius="24" ShadowDepth="6" Direction="270" Opacity="0.18" />
                                     </Border.Effect>
-                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
-                                        <StackPanel IsItemsHost="True"
-                                                    KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
                                     </ScrollViewer>
                                 </Border>
                             </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource ButCol}" />
-                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource HintGrey}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource SxInk3}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource ButCol}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource SxAction}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
-
-        <!-- ─── ComboBox item hover style ─── -->
-        <Style x:Key="FComboItem" TargetType="ComboBoxItem">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBoxItem">
-                        <Border x:Name="ItemBg"
-                                Background="Transparent"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="ItemBg" Property="Background" Value="{DynamicResource ActiveBgBrush}" />
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ItemBg" Property="Background" Value="{DynamicResource ActiveBgBrush}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ─── Section title ─── -->
-        <Style x:Key="FSectionTitle" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-        </Style>
-
-        <!-- ─── Add button (outline) ─── -->
-        <Style x:Key="FAddBtn" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushLight}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="FontFamily" Value="{DynamicResource PoppinsFont}" />
-            <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource HintGrey}" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="BtnBg"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="10" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <!-- Without these the button looked identical whether or not
-                             it was enabled, so "Build with AI" appeared clickable for
-                             the whole time a request was in flight. -->
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BtnBg" Property="Background"
-                                        Value="{DynamicResource HoverLightBrush}" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="BtnBg" Property="Opacity" Value="0.45" />
-                                <Setter Property="Cursor" Value="Arrow" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ─── "Build with AI" button: adds a busy caption on top of FAddBtn ─── -->
-        <Style x:Key="FAiBtn" TargetType="Button" BasedOn="{StaticResource FAddBtn}">
-            <Setter Property="Content" Value="✦ Build with AI" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsAiBusy}" Value="True">
-                    <Setter Property="Content" Value="✦ Building…" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- ─── Totals label ─── -->
-        <Style x:Key="FTotals" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="Margin" Value="0,3,0,0" />
         </Style>
     </UserControl.Resources>
 
-    <Border Background="{DynamicResource BackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrushLight}"
-            BorderThickness="1"
-            CornerRadius="24"
-            Padding="40"
-            SnapsToDevicePixels="True">
-
+    <Border Style="{StaticResource SxSheet}" MaxWidth="1080">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -303,425 +95,361 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- ═══ HEADER ═══ -->
-            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,28">
-                <TextBlock Text="Build New Custom Rate"
-                           FontFamily="{DynamicResource AppFont}"
-                           FontSize="28" FontWeight="Bold"
-                           Foreground="{DynamicResource Blue900Brush}"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="Enter rate name, overhead, profit, and items"
-                           FontFamily="{DynamicResource AppFont}"
-                           FontSize="12.8" FontWeight="SemiBold"
-                           Foreground="{DynamicResource HintGrey}"
-                           HorizontalAlignment="Center"
-                           Margin="0,2,0,0" />
-            </StackPanel>
-
-            <!-- ═══ SCROLLABLE FORM BODY ═══ -->
-            <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          PanningMode="VerticalOnly">
+            <!-- Head -->
+            <DockPanel Margin="24,24,24,16">
+                <Button DockPanel.Dock="Right" Style="{StaticResource SxSheetBtn}" Content="×" VerticalAlignment="Top"
+                        Click="Close_Click" ToolTip="Close without saving" />
                 <StackPanel>
-
-                    <!-- ── AI assist (ADLM AI add-on; hidden only when switched off) ── -->
-                    <Border Visibility="{Binding IsAiAvailable, Converter={StaticResource BoolToVis}}"
-                            Background="{DynamicResource BgInput}"
-                            BorderBrush="{DynamicResource BorderBrushLight}"
-                            BorderThickness="1" CornerRadius="12"
-                            Padding="14" Margin="0,0,0,18">
-                        <!-- Base values are 0 so stopping the storyboard reverts to no
-                             glow at all; the animation only runs while IsAiBusy. -->
-                        <Border.Effect>
-                            <DropShadowEffect Color="#1D94CA"
-                                              ShadowDepth="0"
-                                              BlurRadius="0"
-                                              Opacity="0" />
-                        </Border.Effect>
-                        <Border.Style>
-                            <Style TargetType="Border">
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SxH2}">
+                                <Setter Property="Text" Value="Build New Custom Rate" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsAiBusy}" Value="True">
-                                        <DataTrigger.EnterActions>
-                                            <BeginStoryboard x:Name="AiGlowStoryboard">
-                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                    <DoubleAnimation
-                                                        Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
-                                                        From="4" To="26" Duration="0:0:1.1" />
-                                                    <DoubleAnimation
-                                                        Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
-                                                        From="0.20" To="0.85" Duration="0:0:1.1" />
-                                                </Storyboard>
-                                            </BeginStoryboard>
-                                        </DataTrigger.EnterActions>
-                                        <DataTrigger.ExitActions>
-                                            <StopStoryboard BeginStoryboardName="AiGlowStoryboard" />
-                                        </DataTrigger.ExitActions>
+                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                        <Setter Property="Text" Value="Edit Custom Rate" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </Border.Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource SxLede}" Foreground="{DynamicResource SxInk3}"
+                               Text="Name it, set overhead and profit, then list what goes into it." />
+                </StackPanel>
+            </DockPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          PanningMode="VerticalOnly" Padding="24,0,24,24">
+                <StackPanel>
+
+                    <!-- Build with AI (the ADLM AI add-on; hidden only when switched off) -->
+                    <Border Visibility="{Binding IsAiAvailable, Converter={StaticResource BoolToVis}}"
+                            Background="{DynamicResource SxBgAlt}" BorderBrush="{DynamicResource SxLine2}"
+                            BorderThickness="1" CornerRadius="14" Padding="16" Margin="0,0,0,24">
                         <StackPanel>
-                            <!-- Names the phrasing the guard requires, so the rule is
-                                 visible before the request is refused rather than after. -->
-                            <TextBlock Text="Build with AI — e.g. &quot;Build a rate for 225mm blockwork in cement mortar (1:6)&quot;"
-                                       Style="{StaticResource FLabel}" Margin="0,0,0,8" />
+                            <TextBlock Style="{StaticResource SxLabel}" Text="Build with AI" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0"
+                                <!-- Shows the phrasing the guard needs, before a request is refused -->
+                                <TextBox Style="{StaticResource SxField}"
+                                         Tag="e.g. Build a rate for 225mm blockwork in cement mortar (1:6)"
                                          Text="{Binding AiPrompt, UpdateSourceTrigger=PropertyChanged}"
-                                         Style="{StaticResource FInput}"
                                          IsEnabled="{Binding IsAiIdle}" />
-                                <Button Grid.Column="1"
-                                        Style="{StaticResource FAiBtn}"
-                                        Command="{Binding BuildWithAiCommand}"
-                                        IsEnabled="{Binding IsAiIdle}"
-                                        VerticalAlignment="Center"
-                                        Margin="10,0,0,0" />
+                                <Button Grid.Column="1" Style="{StaticResource SxBtn}" Margin="10,0,0,0"
+                                        Command="{Binding BuildWithAiCommand}" IsEnabled="{Binding IsAiIdle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Spark}" Margin="0,0,8,0" />
+                                        <TextBlock Text="Build with AI" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                             </Grid>
-                            <TextBlock Text="{Binding AiStatus}"
-                                       Style="{StaticResource FLabelSmall}"
-                                       TextWrapping="Wrap"
-                                       Margin="0,8,0,0" />
 
-                            <!-- Checks the server ran and the build-up failed.
-                                 Deliberately loud: a rate that is 2.5x wrong but
-                                 looks plausible gets used in a tender, unlike one
-                                 that is obviously broken. -->
+                            <!-- Named steps while it works: the one place a build takes time -->
+                            <suite:SuiteProgress Margin="0,16,0,0" Steps="{Binding AiSteps}" Step="{Binding AiStep}"
+                                                 Visibility="{Binding IsAiBusy, Converter={StaticResource BoolToVis}}" />
+
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" LineHeight="18" Margin="0,10,0,0"
+                                       Text="{Binding AiStatus}" />
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" LineHeight="18" Margin="0,6,0,0"
+                                       Text="An AI draft is an advisory estimate from the ADLM library and market data. It is not a professional opinion and not for contract use until you have checked every line." />
+
+                            <!-- ADLM's checks failed: loud on purpose. A rate that is wrong but
+                                 plausible gets used in a tender; an obviously broken one does not. -->
                             <Border Visibility="{Binding HasAiWarnings, Converter={StaticResource BoolToVis}}"
-                                    Background="#FFF7E6"
-                                    BorderBrush="#E8A317"
-                                    BorderThickness="1"
-                                    CornerRadius="10"
-                                    Padding="12,10"
-                                    Margin="0,10,0,0">
+                                    Background="{DynamicResource SxAccentTint}" BorderBrush="{DynamicResource SxAccent}"
+                                    BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,12,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="⚠  This build-up did not pass ADLM's checks"
-                                               FontFamily="{DynamicResource AppFont}"
-                                               FontSize="12"
-                                               FontWeight="Bold"
-                                               Foreground="#8A5A00"
-                                               TextWrapping="Wrap" />
-                                    <ItemsControl ItemsSource="{Binding AiWarnings}"
-                                                  Margin="0,6,0,0">
+                                    <TextBlock Style="{StaticResource SxText}" FontSize="12.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource SxAccent}" TextWrapping="Wrap"
+                                               Text="This build-up did not pass ADLM's checks" />
+                                    <ItemsControl ItemsSource="{Binding AiWarnings}" Margin="0,6,0,0">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid Margin="0,3,0,0">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="•"
-                                                               Margin="0,0,6,0"
-                                                               Foreground="#8A5A00"
-                                                               FontSize="11.5" />
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding}"
-                                                               FontFamily="{DynamicResource AppFont}"
-                                                               FontSize="11.5"
-                                                               Foreground="#8A5A00"
-                                                               TextWrapping="Wrap" />
-                                                </Grid>
+                                                <DockPanel Margin="0,3,0,0">
+                                                    <TextBlock Text="•" Margin="0,0,6,0" Foreground="{DynamicResource SxAccent}" />
+                                                    <TextBlock Style="{StaticResource SxText}" FontSize="12" TextWrapping="Wrap" Text="{Binding}" />
+                                                </DockPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="Correct the flagged lines before saving — the quantities, not just the prices."
-                                               FontFamily="{DynamicResource AppFont}"
-                                               FontSize="11"
-                                               FontStyle="Italic"
-                                               Foreground="#8A5A00"
-                                               TextWrapping="Wrap"
-                                               Margin="0,8,0,0" />
+                                    <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" Margin="0,8,0,0"
+                                               Text="Correct the flagged lines before saving: the quantities, not just the prices." />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </Border>
 
-                    <!-- ── Name of Rate ── -->
-                    <TextBlock Text="Name of Rate" Style="{StaticResource FLabel}" Margin="0,0,0,8" />
-                    <TextBox Text="{Binding RateName, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FInput}" />
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Name of rate" />
+                    <TextBox Style="{StaticResource SxField}" Margin="0,0,0,16"
+                             Text="{Binding RateName, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <!-- ── Overhead + Profit row ── -->
-                    <Grid Margin="0,18,0,0">
+                    <Grid Margin="0,0,0,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="8" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Overhead" Style="{StaticResource FLabel}" />
-                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Profit" Style="{StaticResource FLabel}" />
-
-                        <Grid Grid.Row="2" Grid.Column="0">
-                            <TextBox Text="{Binding OverheadPercentText, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource FInputOHP}"
-                                     ToolTip="Overhead as a percentage of the material + labour total" />
-                            <TextBlock Text="%" VerticalAlignment="Center"
-                                       HorizontalAlignment="Right" Margin="0,0,14,0"
-                                       FontFamily="{DynamicResource AppFont}"
-                                       FontSize="14" FontWeight="Bold"
-                                       Foreground="{DynamicResource Grey700}"
-                                       IsHitTestVisible="False" />
-                        </Grid>
-
-                        <Grid Grid.Row="2" Grid.Column="2">
-                            <TextBox Text="{Binding ProfitPercentText, UpdateSourceTrigger=PropertyChanged}"
-                                     Style="{StaticResource FInputOHP}"
-                                     ToolTip="Profit as a percentage of the material + labour total" />
-                            <TextBlock Text="%" VerticalAlignment="Center"
-                                       HorizontalAlignment="Right" Margin="0,0,14,0"
-                                       FontFamily="{DynamicResource AppFont}"
-                                       FontSize="14" FontWeight="Bold"
-                                       Foreground="{DynamicResource Grey700}"
-                                       IsHitTestVisible="False" />
-                        </Grid>
-
-                        <!-- Live cash value of each markup, so the percentages are
-                             not just numbers in a box -->
-                        <TextBlock Grid.Row="3" Grid.Column="0"
-                                   Text="{Binding OverheadAmount, StringFormat='= {0:N2}'}"
-                                   Style="{StaticResource FLabelSmall}"
-                                   Margin="4,6,0,0" />
-                        <TextBlock Grid.Row="3" Grid.Column="2"
-                                   Text="{Binding ProfitAmount, StringFormat='= {0:N2}'}"
-                                   Style="{StaticResource FLabelSmall}"
-                                   Margin="4,6,0,0" />
-                    </Grid>
-
-                    <!-- ── Description ── -->
-                    <TextBlock Text="Description" Style="{StaticResource FLabel}" Margin="0,18,0,8" />
-                    <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FInput}"
-                             TextWrapping="Wrap" AcceptsReturn="True"
-                             MinHeight="100" VerticalContentAlignment="Top" />
-
-                    <!-- ════════════ MATERIALS SECTION ════════════ -->
-                    <Grid Margin="0,28,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Materials" Style="{StaticResource FSectionTitle}" />
-                            <TextBlock Text="Click to add new material"
-                                       FontFamily="{DynamicResource AppFont}"
-                                       FontSize="9" Foreground="{DynamicResource HintGrey}" />
+                            <TextBlock Style="{StaticResource SxLabel}" Text="Overhead" />
+                            <Border Style="{StaticResource SxBox}" Padding="16,11">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource SxMuted}" Text="%" VerticalAlignment="Center" />
+                                    <TextBox Style="{StaticResource SxBare}" FontSize="13.5"
+                                             ToolTip="Overhead as a percentage of the material and labour total"
+                                             Text="{Binding OverheadPercentText, UpdateSourceTrigger=PropertyChanged}" />
+                                </DockPanel>
+                            </Border>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="{Binding OverheadAmount, StringFormat='= {0:N2}'}" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Add Material"
-                                Style="{StaticResource FAddBtn}"
-                                VerticalAlignment="Center"
-                                Command="{Binding AddMaterialItemCommand}" />
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource SxLabel}" Text="Profit" />
+                            <Border Style="{StaticResource SxBox}" Padding="16,11">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource SxMuted}" Text="%" VerticalAlignment="Center" />
+                                    <TextBox Style="{StaticResource SxBare}" FontSize="13.5"
+                                             ToolTip="Profit as a percentage of the material and labour total"
+                                             Text="{Binding ProfitPercentText, UpdateSourceTrigger=PropertyChanged}" />
+                                </DockPanel>
+                            </Border>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" Margin="0,4,0,0"
+                                       Text="{Binding ProfitAmount, StringFormat='= {0:N2}'}" />
+                        </StackPanel>
                     </Grid>
 
-                    <ItemsControl ItemsSource="{Binding MaterialItems}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,4,0,4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="82" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="58" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="96" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="4" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Description — the wording that goes on the bill" />
+                    <TextBox Style="{StaticResource SxField}" TextWrapping="Wrap" AcceptsReturn="True"
+                             MinHeight="84" VerticalContentAlignment="Top"
+                             Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Name of Material" Style="{StaticResource FLabelSmall}" />
-                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Rate" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Center" />
-                                    <TextBlock Grid.Row="0" Grid.Column="4" Text="Unit" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Center" />
-                                    <TextBlock Grid.Row="0" Grid.Column="6" Text="Quantity" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Center" />
-                                    <TextBlock Grid.Row="0" Grid.Column="8" Text="Amount" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Right" />
-
-                                    <ComboBox Grid.Row="2" Grid.Column="0"
-                                              IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
-                                              Text="{Binding Description, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                              ItemsSource="{Binding DataContext.AvailableMaterials, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                              Style="{StaticResource FComboSmall}"
-                                              ItemContainerStyle="{StaticResource FComboItem}" />
-                                    <TextBox Grid.Row="2" Grid.Column="2"
-                                             Text="{Binding UnitPrice, StringFormat=N0, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
-                                             Style="{StaticResource FInputSmall}"
-                                             HorizontalContentAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="4"
-                                             Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                             Style="{StaticResource FInputSmall}" HorizontalContentAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="6"
-                                             Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                             Style="{StaticResource FInputSmall}"
-                                             HorizontalContentAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="8"
-                                             Text="{Binding TotalCost, StringFormat=N0, Mode=OneWay}"
-                                             Style="{StaticResource FInputSmall}" IsReadOnly="True"
-                                             HorizontalContentAlignment="Right" />
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <!-- ════════════ LABOUR SECTION ════════════ -->
-                    <Grid Margin="0,28,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <!-- Materials -->
+                    <Border BorderBrush="{DynamicResource SxLine}" BorderThickness="0,1,0,0" Margin="0,24,0,0" Padding="0,16,0,0">
                         <StackPanel>
-                            <TextBlock Text="Labour" Style="{StaticResource FSectionTitle}" />
-                            <TextBlock Text="Click to add new Labour"
-                                       FontFamily="{DynamicResource AppFont}"
-                                       FontSize="9" Foreground="{DynamicResource HintGrey}" />
+                            <DockPanel Margin="0,0,0,10">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource SxBtnGhostSm}" Content="Add material"
+                                        Command="{Binding AddMaterialItemCommand}" />
+                                <TextBlock Style="{StaticResource SxH3}" VerticalAlignment="Center">
+                                    <Run Text="Materials" /><Run Text="   Everything that is bought" FontSize="12" FontWeight="Normal"
+                                         Foreground="{DynamicResource SxInk3}" />
+                                </TextBlock>
+                            </DockPanel>
+                        <ItemsControl ItemsSource="{Binding MaterialItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="160" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="36" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Style="{StaticResource RowLabel}" Text="Name of material" />
+                                        <TextBlock Grid.Column="2" Style="{StaticResource RowLabel}" Text="Rate" />
+                                        <TextBlock Grid.Column="4" Style="{StaticResource RowLabel}" Text="Unit" />
+                                        <TextBlock Grid.Column="6" Style="{StaticResource RowLabel}" Text="Quantity" />
+                                        <TextBlock Grid.Column="8" Style="{StaticResource RowLabel}" Text="Amount" />
+
+                                        <!-- Type, or pick from the library so its price applies -->
+                                        <ComboBox Grid.Row="1"
+                                                  IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
+                                                  Text="{Binding Description, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                  ItemsSource="{Binding DataContext.AvailableMaterials, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  Style="{StaticResource PickCombo}"
+                                                  ItemContainerStyle="{StaticResource SxSelectItem}" />
+                                        <TextBox Grid.Row="1" Grid.Column="2" Style="{StaticResource SxFieldNum}"
+                                                 Text="{Binding UnitPrice, StringFormat=N0, UpdateSourceTrigger=LostFocus, Mode=TwoWay}" />
+                                        <TextBox Grid.Row="1" Grid.Column="4" Style="{StaticResource SxFieldSm}"
+                                                 Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                                        <TextBox Grid.Row="1" Grid.Column="6" Style="{StaticResource SxFieldNum}"
+                                                 Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                                        <TextBox Grid.Row="1" Grid.Column="8" Style="{StaticResource SxFieldNum}" IsReadOnly="True"
+                                                 Focusable="False"
+                                                 Text="{Binding TotalCost, StringFormat=N0, Mode=OneWay}" />
+                                        <Button Grid.Row="1" Grid.Column="9" Style="{StaticResource SxDel}"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                ToolTip="Remove this line" AutomationProperties.Name="Remove"
+                                                Click="RemoveRow_Click" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="No materials yet.">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SxNone}">
+                                    <Setter Property="Margin" Value="0,6,0,10" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MaterialItems.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Add Labour"
-                                Style="{StaticResource FAddBtn}"
-                                VerticalAlignment="Center"
-                                Command="{Binding AddLabourItemCommand}" />
-                    </Grid>
+                    </Border>
 
-                    <ItemsControl ItemsSource="{Binding LabourItems}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,4,0,4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="82" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="58" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="96" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="4" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                    <!-- Labour -->
+                    <Border BorderBrush="{DynamicResource SxLine}" BorderThickness="0,1,0,0" Margin="0,16,0,0" Padding="0,16,0,0">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource SxBtnGhostSm}" Content="Add labour"
+                                        Command="{Binding AddLabourItemCommand}" />
+                                <TextBlock Style="{StaticResource SxH3}" VerticalAlignment="Center">
+                                    <Run Text="Labour" /><Run Text="   Everything that is worked" FontSize="12" FontWeight="Normal"
+                                         Foreground="{DynamicResource SxInk3}" />
+                                </TextBlock>
+                            </DockPanel>
+                        <ItemsControl ItemsSource="{Binding LabourItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="160" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="110" />
+                                            <ColumnDefinition Width="36" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Style="{StaticResource RowLabel}" Text="Name of labour" />
+                                        <TextBlock Grid.Column="2" Style="{StaticResource RowLabel}" Text="Rate" />
+                                        <TextBlock Grid.Column="4" Style="{StaticResource RowLabel}" Text="Unit" />
+                                        <TextBlock Grid.Column="6" Style="{StaticResource RowLabel}" Text="Quantity" />
+                                        <TextBlock Grid.Column="8" Style="{StaticResource RowLabel}" Text="Amount" />
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Name of Labour" Style="{StaticResource FLabelSmall}" />
-                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="Rate" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Center" />
-                                    <TextBlock Grid.Row="0" Grid.Column="4" Text="Unit" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Center" />
-                                    <TextBlock Grid.Row="0" Grid.Column="6" Text="Quantity" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Center" />
-                                    <TextBlock Grid.Row="0" Grid.Column="8" Text="Amount" Style="{StaticResource FLabelSmall}" HorizontalAlignment="Right" />
+                                        <!-- Type, or pick from the library so its price applies -->
+                                        <ComboBox Grid.Row="1"
+                                                  IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
+                                                  Text="{Binding Description, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                  ItemsSource="{Binding DataContext.AvailableLabourItems, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  Style="{StaticResource PickCombo}"
+                                                  ItemContainerStyle="{StaticResource SxSelectItem}" />
+                                        <TextBox Grid.Row="1" Grid.Column="2" Style="{StaticResource SxFieldNum}"
+                                                 Text="{Binding UnitPrice, StringFormat=N0, UpdateSourceTrigger=LostFocus, Mode=TwoWay}" />
+                                        <TextBox Grid.Row="1" Grid.Column="4" Style="{StaticResource SxFieldSm}"
+                                                 Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                                        <TextBox Grid.Row="1" Grid.Column="6" Style="{StaticResource SxFieldNum}"
+                                                 Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+                                        <TextBox Grid.Row="1" Grid.Column="8" Style="{StaticResource SxFieldNum}" IsReadOnly="True"
+                                                 Focusable="False"
+                                                 Text="{Binding TotalCost, StringFormat=N0, Mode=OneWay}" />
+                                        <Button Grid.Row="1" Grid.Column="9" Style="{StaticResource SxDel}"
+                                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                ToolTip="Remove this line" AutomationProperties.Name="Remove"
+                                                Click="RemoveRow_Click" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="No labour yet.">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource SxNone}">
+                                    <Setter Property="Margin" Value="0,6,0,10" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LabourItems.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        </StackPanel>
+                    </Border>
 
-                                    <ComboBox Grid.Row="2" Grid.Column="0"
-                                              IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
-                                              Text="{Binding Description, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                              ItemsSource="{Binding DataContext.AvailableLabourItems, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                              Style="{StaticResource FComboSmall}"
-                                              ItemContainerStyle="{StaticResource FComboItem}" />
-                                    <TextBox Grid.Row="2" Grid.Column="2"
-                                             Text="{Binding UnitPrice, StringFormat=N0, UpdateSourceTrigger=LostFocus, Mode=TwoWay}"
-                                             Style="{StaticResource FInputSmall}"
-                                             HorizontalContentAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="4"
-                                             Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                             Style="{StaticResource FInputSmall}" HorizontalContentAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="6"
-                                             Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                             Style="{StaticResource FInputSmall}"
-                                             HorizontalContentAlignment="Center" />
-                                    <TextBox Grid.Row="2" Grid.Column="8"
-                                             Text="{Binding TotalCost, StringFormat=N0, Mode=OneWay}"
-                                             Style="{StaticResource FInputSmall}" IsReadOnly="True"
-                                             HorizontalContentAlignment="Right" />
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <!-- Totals -->
-                    <TextBlock Text="{Binding TotalMaterialCost, StringFormat='Material Total: {0:N2}'}"
-                               Style="{StaticResource FTotals}" Margin="0,16,0,0" />
-                    <TextBlock Text="{Binding TotalLabourCost, StringFormat='Labour Total: {0:N2}'}"
-                               Style="{StaticResource FTotals}" />
-                    <TextBlock Text="{Binding OverallTotal, StringFormat='Overall Total: {0:N2}'}"
-                               Style="{StaticResource FTotals}" />
-                    <TextBlock Style="{StaticResource FTotals}">
-                        <Run Text="Overhead (" /><Run Text="{Binding OverheadPercent, Mode=OneWay, StringFormat='0.##'}" /><Run Text="%): " /><Run Text="{Binding OverheadAmount, Mode=OneWay, StringFormat=N2}" />
-                    </TextBlock>
-                    <TextBlock Style="{StaticResource FTotals}">
-                        <Run Text="Profit (" /><Run Text="{Binding ProfitPercent, Mode=OneWay, StringFormat='0.##'}" /><Run Text="%): " /><Run Text="{Binding ProfitAmount, Mode=OneWay, StringFormat=N2}" />
-                    </TextBlock>
-                    <TextBlock Text="{Binding GrandTotal, StringFormat='Grand Total: {0:N2}'}"
-                               Style="{StaticResource FTotals}"
-                               FontSize="15" FontWeight="Bold"
-                               Margin="0,8,0,0" />
-
+                    <!-- Summary -->
+                    <Border BorderBrush="{DynamicResource SxLine}" BorderThickness="0,1,0,0" Margin="0,16,0,0" Padding="0,16,0,0">
+                        <UniformGrid x:Name="Summary" Columns="3" Margin="0,0,-10,0">
+                            <Border Background="{DynamicResource SxBgAlt}" CornerRadius="10" Padding="12,10" Margin="0,0,10,10">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SxMuted}" FontSize="11" Text="Material total" />
+                                    <TextBlock Style="{StaticResource SxCellNumB}" FontSize="15" TextAlignment="Left" Margin="0,2,0,0"
+                                               Text="{Binding TotalMaterialCost, Mode=OneWay, StringFormat=N2}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource SxBgAlt}" CornerRadius="10" Padding="12,10" Margin="0,0,10,10">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SxMuted}" FontSize="11" Text="Labour total" />
+                                    <TextBlock Style="{StaticResource SxCellNumB}" FontSize="15" TextAlignment="Left" Margin="0,2,0,0"
+                                               Text="{Binding TotalLabourCost, Mode=OneWay, StringFormat=N2}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource SxBgAlt}" CornerRadius="10" Padding="12,10" Margin="0,0,10,10">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SxMuted}" FontSize="11" Text="Overall" />
+                                    <TextBlock Style="{StaticResource SxCellNumB}" FontSize="15" TextAlignment="Left" Margin="0,2,0,0"
+                                               Text="{Binding OverallTotal, Mode=OneWay, StringFormat=N2}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource SxBgAlt}" CornerRadius="10" Padding="12,10" Margin="0,0,10,10">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SxMuted}" FontSize="11"><Run Text="Overhead (" /><Run Text="{Binding OverheadPercent, Mode=OneWay, StringFormat=0.##}" /><Run Text="%)" /></TextBlock>
+                                    <TextBlock Style="{StaticResource SxCellNumB}" FontSize="15" TextAlignment="Left" Margin="0,2,0,0"
+                                               Text="{Binding OverheadAmount, Mode=OneWay, StringFormat=N2}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource SxBgAlt}" CornerRadius="10" Padding="12,10" Margin="0,0,10,10">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource SxMuted}" FontSize="11"><Run Text="Profit (" /><Run Text="{Binding ProfitPercent, Mode=OneWay, StringFormat=0.##}" /><Run Text="%)" /></TextBlock>
+                                    <TextBlock Style="{StaticResource SxCellNumB}" FontSize="15" TextAlignment="Left" Margin="0,2,0,0"
+                                               Text="{Binding ProfitAmount, Mode=OneWay, StringFormat=N2}" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </Border>
+                    <Border Background="{DynamicResource SxBgInset}" CornerRadius="10" Padding="14,12">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11" Text="Grand total" />
+                            <TextBlock Style="{StaticResource SxCellNumB}" FontSize="20" TextAlignment="Left" Margin="0,2,0,0"
+                                       Text="{Binding GrandTotal, Mode=OneWay, StringFormat=N2}" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- ═══ SAVE BUTTON ═══ -->
-            <Button Grid.Row="2"
-                    Margin="0,24,0,0"
-                    HorizontalAlignment="Stretch"
-                    Cursor="Hand"
-                    Command="{Binding SaveCustomRateCommand}">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{DynamicResource DarkButtonBrush}" />
-                        <Setter Property="Foreground" Value="White" />
-                        <Setter Property="Content" Value="Save" />
-                        <Setter Property="BorderThickness" Value="0" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="SaveBg"
-                                            Background="{TemplateBinding Background}"
-                                            CornerRadius="13" Height="58"
-                                            Padding="32,16">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center" />
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="SaveBg" Property="Background" Value="{DynamicResource DarkButtonHoverBrush}" />
-                                        </Trigger>
-                                        <Trigger Property="IsEnabled" Value="False">
-                                            <Setter TargetName="SaveBg" Property="Background" Value="{DynamicResource DisabledBgBrush}" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                <Setter Property="Content" Value="Update" />
-                            </DataTrigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{DynamicResource DisabledFgBrush}" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-                <Button.ContentTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   FontFamily="{DynamicResource AppFont}"
-                                   FontSize="18" FontWeight="Medium"
-                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                   TextAlignment="Center" />
-                    </DataTemplate>
-                </Button.ContentTemplate>
-            </Button>
+            <Border Grid.Row="2" Style="{StaticResource SxSheetFoot}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource SxBtnGhost}" Content="Cancel" Margin="0,0,10,0" Click="Close_Click" />
+                    <Button Grid.Column="1" Command="{Binding SaveCustomRateCommand}"
+                            ToolTip="Saved on this PC, in Saved Rates. Never sent into the ADLM library.">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SxBtn}">
+                                <Setter Property="Content" Value="Save this rate" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                        <Setter Property="Content" Value="Update this rate" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

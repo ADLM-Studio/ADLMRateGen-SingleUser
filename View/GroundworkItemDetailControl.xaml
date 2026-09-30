@@ -4,231 +4,165 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="700" d:DesignWidth="820">
-
-    <Border Background="{DynamicResource BackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrushLight}"
-            BorderThickness="1"
-            CornerRadius="24"
-            Padding="56,54"
-            SnapsToDevicePixels="True"
-            MaxHeight="700">
-
+             Tag="SxSheet"
+             d:DesignHeight="640" d:DesignWidth="820">
+    <!-- Rate Composition (Richard's design, 30 Sep 2026): opening a rate shows
+         what it is made of. One layout for every trade; this file differs from
+         its siblings only in the class and the breakdown it lists. -->
+    <Border Style="{StaticResource SxSheet}" MinWidth="520" MaxWidth="820" MaxHeight="760">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Margin="0,0,0,37">
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                    <Button Click="BackButton_Click" Cursor="Hand"
-                            VerticalAlignment="Center" Margin="0,0,5,0">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Path Data="M15,3 L6,12 L15,21"
-                                      Stroke="{DynamicResource HintGrey}" StrokeThickness="2.5"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"
-                                      Width="26" Height="26"
-                                      Stretch="Uniform" Margin="4" />
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                    <TextBlock Text="Rate Composition"
-                               FontFamily="{DynamicResource Mont}"
-                               FontSize="36" FontWeight="Bold"
-                               Foreground="{DynamicResource HintGrey}" />
-                </StackPanel>
+            <!-- Head: back, title, close -->
+            <DockPanel Margin="24,24,24,16">
+                <Button DockPanel.Dock="Left" Style="{StaticResource SxSheetBtn}" Content="‹"
+                        Click="BackButton_Click" ToolTip="Back to the table" Margin="0,0,10,0" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource SxSheetBtn}" Content="×"
+                        Click="CancelButton_Click" ToolTip="Close" />
+                <TextBlock Style="{StaticResource SxH2}" Text="Rate Composition" VerticalAlignment="Center" />
+            </DockPanel>
 
-                <TextBlock Text="{Binding Description}"
-                           FontFamily="{DynamicResource Mont}"
-                           FontSize="20" FontWeight="SemiBold"
-                           Foreground="{DynamicResource Blue900Brush}"
-                           TextWrapping="Wrap"
-                           MaxWidth="664"
-                           HorizontalAlignment="Left" />
-            </StackPanel>
-
-            <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,0,24,24">
                 <StackPanel>
-                    <Border Background="{DynamicResource HeaderBgBrush}" Padding="10">
+                    <TextBlock Style="{StaticResource SxText}" FontSize="15" FontWeight="SemiBold" LineHeight="23"
+                               TextWrapping="Wrap" Margin="0,0,0,16" Text="{Binding Description}" />
+
+                    <Border BorderBrush="{DynamicResource SxLine2}" BorderThickness="0,0,0,1" Padding="10,0,10,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="90" />
-                                <ColumnDefinition Width="70" />
                                 <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="140" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Component"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" Padding="10,0" />
-                            <TextBlock Grid.Column="1" Text="Quantity"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
-                            <TextBlock Grid.Column="2" Text="Unit"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
-                            <TextBlock Grid.Column="3" Text="Unit Price"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
-                            <TextBlock Grid.Column="4" Text="Total Cost"
-                                       FontFamily="{DynamicResource PoppinsFont}"
-                                       FontSize="16" FontWeight="Medium"
-                                       Foreground="{DynamicResource Blue900Brush}" TextAlignment="Right" Padding="10,0" />
+                            <TextBlock Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="COMPONENT" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="QUANTITY" TextAlignment="Right" Padding="0,0,11,0" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="UNIT" Padding="12,0,0,0" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="UNIT PRICE" TextAlignment="Right" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource SxCellMuted}" FontSize="11" FontWeight="SemiBold" Text="AMOUNT" TextAlignment="Right" />
                         </Grid>
                     </Border>
 
                     <ItemsControl ItemsSource="{Binding BreakdownLines}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <Grid Margin="0,10">
+                                <Border BorderBrush="{DynamicResource SxLine}" BorderThickness="0,0,0,1" Padding="10,8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource SxBgAlt}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid MinHeight="34">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="90" />
-                                            <ColumnDefinition Width="70" />
                                             <ColumnDefinition Width="110" />
-                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="140" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0"
-                                                   Background="Transparent"
-                                                   Text="{Binding ComponentName}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" Foreground="{DynamicResource Blue900Brush}"
-                                                   TextWrapping="Wrap" Padding="10,0">
-                                            <!-- Click a component to open the library at the row it is
-                                                 priced from. Underlined and hand-cursored only when the
-                                                 name resolves to a library item, so totals, warnings and
-                                                 percentage rows do not look clickable. -->
+                                        <!-- A component that is a library item opens the library at
+                                             its row; totals and percentages do not look clickable. -->
+                                        <TextBlock Text="{Binding ComponentName}" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" Margin="0,0,12,0">
                                             <TextBlock.InputBindings>
                                                 <MouseBinding MouseAction="LeftClick"
                                                               Command="{Binding OpenInLibraryCommand}"
                                                               CommandParameter="{Binding ComponentName}" />
                                             </TextBlock.InputBindings>
                                             <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="FontWeight" Value="Normal" />
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource SxCell}">
+                                                    <Setter Property="FontSize" Value="13.5" />
+                                                    <Setter Property="FontWeight" Value="Medium" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding CanOpenInLibrary}" Value="True">
-                                                            <Setter Property="TextDecorations" Value="Underline" />
                                                             <Setter Property="Cursor" Value="Hand" />
+                                                            <Setter Property="ToolTip" Value="Open this in the library" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
-                                                            <Setter Property="FontWeight" Value="Bold" />
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                        <TextBox Grid.Column="1"
-                                                 Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat=N2}"
-                                                 IsEnabled="{Binding IsEditableQuantity}"
-                                                 IsReadOnly="True"
-                                                 MouseDoubleClick="QuantityTextBox_MouseDoubleClick"
-                                                 LostFocus="QuantityTextBox_LostFocus"
-                                                 FontFamily="{DynamicResource PoppinsFont}"
-                                                 FontSize="16" FontWeight="Medium"
-                                                 Foreground="{DynamicResource Blue900Brush}"
-                                                 TextAlignment="Right" Padding="10,4"
-                                                 VerticalAlignment="Center"
-                                                 ToolTip="Double-click to edit quantity. Click out to save.">
-                                            <TextBox.Style>
-                                                <Style TargetType="TextBox">
-                                                    <Setter Property="Background" Value="Transparent" />
-                                                    <Setter Property="BorderBrush" Value="Transparent" />
-                                                    <Setter Property="BorderThickness" Value="0" />
-                                                    <Setter Property="Cursor" Value="Arrow" />
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsReadOnly" Value="False">
-                                                            <Setter Property="Background" Value="#FFFBE5" />
-                                                            <Setter Property="BorderBrush" Value="{DynamicResource Blue900Brush}" />
-                                                            <Setter Property="BorderThickness" Value="1.5" />
-                                                            <Setter Property="Cursor" Value="IBeam" />
-                                                        </Trigger>
-                                                        <Trigger Property="IsEnabled" Value="False">
-                                                            <Setter Property="Opacity" Value="0.55" />
-                                                            <Setter Property="Cursor" Value="Arrow" />
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBox.Style>
-                                        </TextBox>
-                                        <TextBlock Grid.Column="2"
-                                                   Text="{Binding Unit}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="3"
-                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}, StringFormat=N2}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="4"
-                                                   Text="{Binding TotalPrice, Converter={StaticResource MoneyConv}, StringFormat=N2}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
-                                                   FontSize="16" FontWeight="Medium"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   TextAlignment="Right" Padding="10,0"
-                                                   VerticalAlignment="Center" />
+                                <!-- Every quantity is editable: plant output and labour
+                                     outputs are the figures that change from job to job. -->
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding Quantity, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.####}}"
+                                         LostFocus="QuantityTextBox_LostFocus"
+                                         KeyDown="QuantityTextBox_KeyDown"
+                                         ToolTip="Change the quantity; the sub-totals refresh when you leave the field">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource SxFieldNum}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditableQuantity}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                                <TextBlock Grid.Column="1" Padding="0,0,11,0" VerticalAlignment="Center"
+                                           Text="{Binding Quantity, StringFormat={}{0:0.####}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+                                            <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditableQuantity}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsTotalLine}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                        <TextBlock Grid.Column="2" Style="{StaticResource SxCellMuted}" Padding="12,0,0,0"
+                                                   VerticalAlignment="Center" Text="{Binding Unit}" />
+                                        <TextBlock Grid.Column="3" Style="{StaticResource SxCellNum}" VerticalAlignment="Center"
+                                                   Text="{Binding UnitPrice, Converter={StaticResource MoneyConv}}" />
+                                        <TextBlock Grid.Column="4" Style="{StaticResource SxCellNumB}" VerticalAlignment="Center"
+                                                   Text="{Binding TotalPrice, Converter={StaticResource MoneyConv}}" />
                                     </Grid>
-                                    <Rectangle Height="1.5" Fill="{DynamicResource DivBrush}" />
-                                </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <!-- Save / Reset / Cancel footer for user Quantity edits -->
-                    <Border Margin="0,16,0,0" Padding="10,12"
-                            Background="{DynamicResource HeaderBgBrush}"
-                            CornerRadius="8">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Text="Edit any Quantity field above. Sub-totals refresh automatically."
-                                       VerticalAlignment="Center" Margin="0,0,16,0"
-                                       FontFamily="{DynamicResource PoppinsFont}" FontSize="12"
-                                       Foreground="{DynamicResource HintGrey}" />
-                            <Button Content="Reset This Rate"
-                                    Click="ResetThisRateButton_Click"
-                                    Cursor="Hand"
-                                    Padding="14,6" Margin="0,0,8,0"
-                                    Background="Transparent"
-                                    BorderBrush="{DynamicResource HintGrey}" BorderThickness="1"
-                                    Foreground="{DynamicResource HintGrey}"
-                                    FontFamily="{DynamicResource PoppinsFont}" FontSize="13"
-                                    ToolTip="Restore the shipped default Quantities for this item." />
-                            <Button Content="Cancel"
-                                    Click="CancelButton_Click"
-                                    Cursor="Hand"
-                                    Padding="14,6" Margin="0,0,8,0"
-                                    Background="Transparent"
-                                    BorderBrush="{DynamicResource HintGrey}" BorderThickness="1"
-                                    Foreground="{DynamicResource HintGrey}"
-                                    FontFamily="{DynamicResource PoppinsFont}" FontSize="13"
-                                    ToolTip="Discard unsaved edits in this session." />
-                            <Button Content="Save"
-                                    Click="SaveButton_Click"
-                                    Cursor="Hand"
-                                    Padding="18,6"
-                                    Background="{DynamicResource Blue900Brush}"
-                                    BorderThickness="0"
-                                    Foreground="White"
-                                    FontFamily="{DynamicResource PoppinsFont}" FontSize="13" FontWeight="SemiBold"
-                                    ToolTip="Persist changes locally + sync to QUIV / HERON." />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
             </ScrollViewer>
+
+                <Border Grid.Row="2" Style="{StaticResource SxSheetFoot}">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource SxBtnGhost}" Margin="0,0,10,0" Content="Reset this rate"
+                                    Click="ResetThisRateButton_Click"
+                                    ToolTip="Every quantity back to what ADLM published" />
+                            <Button Style="{StaticResource SxBtnGhost}" Margin="0,0,10,0" Content="Cancel"
+                                    Click="CancelButton_Click"
+                                    ToolTip="Discard the changes made since the last save" />
+                            <Button Style="{StaticResource SxBtn}" Content="Save" Click="SaveButton_Click"
+                                    ToolTip="Keep these quantities on this PC and sync them to QUIV and HERON" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource SxMuted}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Edit any quantity above. The sub-totals refresh when you leave the field." />
+                    </DockPanel>
+                </Border>
         </Grid>
     </Border>
 </UserControl>

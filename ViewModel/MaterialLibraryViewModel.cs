@@ -187,7 +187,7 @@ namespace ADLMRateGen.ViewModel
             // only user-added rows are deletable
             if (!ADLMRateGen.Services.UserRowChecker.IsUserMaterial(material.SerialNumber, material.MaterialName ?? ""))
             {
-                MessageBox.Show("Only your own added materials can be deleted.\nMaster items cannot be removed.",
+                ADLMRateGen.Helpers.AppMessage.Show("Only your own added materials can be deleted.\nMaster items cannot be removed.",
                     "Not allowed", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -196,7 +196,7 @@ namespace ADLMRateGen.ViewModel
             int uses = ADLMRateGen.ViewModel.CustomRate.CustomRateUsage.CountMaterialUsage(material.MaterialName ?? "");
             if (uses > 0)
             {
-                var r = MessageBox.Show(
+                var r = ADLMRateGen.Helpers.AppMessage.Show(
                     $"{uses} custom rate item(s) use \"{material.MaterialName}\".\n" +
                     "If you proceed, they will be removed from those custom rates.\n\nProceed?",
                     "Used in Custom Rates", MessageBoxButton.YesNo, MessageBoxImage.Warning);
@@ -218,7 +218,7 @@ namespace ADLMRateGen.ViewModel
             ApplyFilter();
 
             // user feedback now
-            MessageBox.Show("Material deleted successfully.", "Deleted", MessageBoxButton.OK, MessageBoxImage.Information);
+            ADLMRateGen.Helpers.AppMessage.Show("Material deleted successfully.", "Deleted", MessageBoxButton.OK, MessageBoxImage.Information);
 
 
             // remove from server user library (best-effort)
@@ -277,7 +277,7 @@ namespace ADLMRateGen.ViewModel
 
         //private async void UpdatePricesFromMongo()
         //{
-        //    var result = MessageBox.Show(
+        //    var result = ADLMRateGen.Helpers.AppMessage.Show(
         //        "Override prices with ADLM server values for your current zone?",
         //        "Confirm",
         //        MessageBoxButton.YesNo,
@@ -290,7 +290,7 @@ namespace ADLMRateGen.ViewModel
         //    {
         //        if (!NetChecks.IsOnline())
         //        {
-        //            MessageBox.Show("You appear to be offline. Connect to the Internet to update prices.",
+        //            ADLMRateGen.Helpers.AppMessage.Show("You appear to be offline. Connect to the Internet to update prices.",
         //                "No Internet", MessageBoxButton.OK, MessageBoxImage.Warning);
         //            return;
         //        }
@@ -298,7 +298,7 @@ namespace ADLMRateGen.ViewModel
         //        string zone = ADLMRateGen.Properties.AppSettings.Zone ?? "";
         //        if (string.IsNullOrWhiteSpace(zone))
         //        {
-        //            MessageBox.Show("No user zone set. Please sign in again to sync your zone profile.");
+        //            ADLMRateGen.Helpers.AppMessage.Show("No user zone set. Please sign in again to sync your zone profile.");
         //            return;
         //        }
 
@@ -314,30 +314,30 @@ namespace ADLMRateGen.ViewModel
         //            ADLMRateGen.Services.DataSourceCloudSync.SaveMaterialsFromDto(mats);
 
         //        ReloadFromDisk();
-        //        MessageBox.Show($"Material prices updated for zone '{zone}'.");
+        //        ADLMRateGen.Helpers.AppMessage.Show($"Material prices updated for zone '{zone}'.");
         //    }
         //    catch (UnauthorizedAccessException)
         //    {
-        //        MessageBox.Show(
+        //        ADLMRateGen.Helpers.AppMessage.Show(
         //            "Your session has expired. Please sign in again, then retry the update.",
         //            "Session expired", MessageBoxButton.OK, MessageBoxImage.Information);
         //    }
         //    catch (InvalidOperationException ex) when (ex.Message.StartsWith("401") || ex.Message.Contains("Not signed in"))
         //    {
-        //        MessageBox.Show(
+        //        ADLMRateGen.Helpers.AppMessage.Show(
         //            "Not signed in. Please sign in again to update prices.",
         //            "Authentication required", MessageBoxButton.OK, MessageBoxImage.Warning);
         //    }
         //    catch (Exception ex)
         //    {
-        //        MessageBox.Show($"Error updating materials: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //        ADLMRateGen.Helpers.AppMessage.Show($"Error updating materials: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         //    }
         //}
 
 
         private async void UpdatePricesFromMongo()
         {
-            var result = MessageBox.Show(
+            var result = ADLMRateGen.Helpers.AppMessage.Show(
                 "Override prices with ADLM server values for your current zone?",
                 "Confirm",
                 MessageBoxButton.YesNo,
@@ -349,7 +349,7 @@ namespace ADLMRateGen.ViewModel
             // Validate first (don’t show loader if we’ll immediately exit)
             if (!NetChecks.IsOnline())
             {
-                MessageBox.Show("You appear to be offline. Connect to the Internet to update prices.",
+                ADLMRateGen.Helpers.AppMessage.Show("You appear to be offline. Connect to the Internet to update prices.",
                     "No Internet", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -357,7 +357,7 @@ namespace ADLMRateGen.ViewModel
             string zone = ADLMRateGen.Properties.AppSettings.Zone ?? "";
             if (string.IsNullOrWhiteSpace(zone))
             {
-                MessageBox.Show("No user zone set. Please sign in again to sync your zone profile.");
+                ADLMRateGen.Helpers.AppMessage.Show("No user zone set. Please sign in again to sync your zone profile.");
                 return;
             }
 
@@ -377,23 +377,23 @@ namespace ADLMRateGen.ViewModel
                     ADLMRateGen.Services.DataSourceCloudSync.SaveMaterialsFromDto(mats);
 
                 ReloadFromDisk();
-                MessageBox.Show($"Material prices updated for zone '{zone}'.");
+                ADLMRateGen.Helpers.AppMessage.Show($"Material prices updated for zone '{zone}'.");
             }
             catch (UnauthorizedAccessException)
             {
-                MessageBox.Show(
+                ADLMRateGen.Helpers.AppMessage.Show(
                     "Your session has expired. Please sign in again, then retry the update.",
                     "Session expired", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (InvalidOperationException ex) when (ex.Message.StartsWith("401") || ex.Message.Contains("Not signed in"))
             {
-                MessageBox.Show(
+                ADLMRateGen.Helpers.AppMessage.Show(
                     "Not signed in. Please sign in again to update prices.",
                     "Authentication required", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error updating materials: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ADLMRateGen.Helpers.AppMessage.Show($"Error updating materials: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -416,6 +416,6 @@ namespace ADLMRateGen.ViewModel
         }
 
         private void OpenNewMaterialDialog()
-            => MessageBox.Show("TODO: open *Add Material* dialog");
+            => ADLMRateGen.Helpers.AppMessage.Show("TODO: open *Add Material* dialog");
     }
 }

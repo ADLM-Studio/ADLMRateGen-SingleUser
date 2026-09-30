@@ -80,6 +80,42 @@ namespace ADLMRateGen.ViewModel.MepWork
 			"Sanitary", "Air Conditioning & Ventilation", "Fire Protection", "Security"
 		};
 
+		/* ───────────── services, split the way a bill is (30 Sep 2026) ─────────────
+		   The rail shows four services rather than one MEP heap: Mechanical,
+		   Electrical, Plumbing and Fire. One engine still prices them all, so a
+		   rate and its overrides are the same whichever list it is opened from;
+		   the discipline only decides which rows are listed. */
+		public const string Mechanical = "Mechanical";
+		public const string Electrical = "Electrical";
+		public const string Plumbing = "Plumbing";
+		public const string Fire = "Fire";
+
+		public static string DisciplineOf(string? section) => section switch
+		{
+			"Air Conditioning & Ventilation" => Mechanical,
+			"Sanitary" or "Water Supply" or "Soil & Waste" or "Rainwater" => Plumbing,
+			"Fire Protection" => Fire,
+			_ => Electrical
+		};
+
+		private string _discipline = Electrical;
+
+		/// <summary>Which of the four services is listed.</summary>
+		public string Discipline
+		{
+			get => _discipline;
+			set
+			{
+				if (_discipline == value) return;
+				_discipline = value;
+				RaisePropertyChanged();
+				RaisePropertyChanged(nameof(DisciplineTitle));
+				MepWorkCollectionView?.Refresh();
+			}
+		}
+
+		public string DisciplineTitle => Discipline + " Services Computation";
+
 		public string SelectedSection
 		{
 			get => _selectedSection;
@@ -201,6 +237,8 @@ namespace ADLMRateGen.ViewModel.MepWork
 		{
 			if (obj is not MepWorkItem item) return false;
 
+			if (DisciplineOf(item.Section) != Discipline) return false;
+
 			if (SelectedSection != "All" &&
 				!string.Equals(item.Section, SelectedSection, StringComparison.OrdinalIgnoreCase))
 				return false;
@@ -244,10 +282,38 @@ namespace ADLMRateGen.ViewModel.MepWork
 		/// </summary>
 		private MepWorkItem Compose(string section, string description, string unit,
 									params (string catalogName, double qty, string qtyUnit)[] parts)
+			=> Build(section, description, unit, parts, Array.Empty<(string, double, string)>());
+
+		/// <summary>
+		/// A rate built from SUPPLY prices plus the labour to fix them, for the
+		/// catalogue rows priced supply-only (plumbing pipework, valves, drainage).
+		/// These are the one place in services where labour is added, because the
+		/// price does not already include it. Outputs are the library's own, from
+		/// Data/labourSpecs.json, cited at each item; nothing here is estimated.
+		/// </summary>
+		private MepWorkItem Build(string section, string description, string unit,
+								  (string catalogName, double qty, string qtyUnit)[] parts,
+								  (string labourName, double qty, string qtyUnit)[] labour)
 		{
 			int itemNo = ++_itemNo;
 			var lines = new ObservableCollection<MepWorkBreakdownLine>();
 			double net = 0;
+
+			foreach (var (labourName, defaultQty, qtyUnit) in labour)
+			{
+				double qty = Services.UserRateEditStore.Current.Qty(SectionKey, itemNo, labourName, defaultQty);
+				double rate = _helper.GetLabourRate(labourName);
+				double total = rate * qty;
+				net += total;
+				lines.Add(new MepWorkBreakdownLine
+				{
+					ComponentName = labourName,
+					Quantity = qty,
+					Unit = qtyUnit,
+					UnitPrice = rate,
+					TotalPrice = total
+				});
+			}
 
 			foreach (var (catalogName, defaultQty, qtyUnit) in parts)
 			{
@@ -271,7 +337,9 @@ namespace ADLMRateGen.ViewModel.MepWork
 
 			lines.Add(new MepWorkBreakdownLine
 			{
-				ComponentName = "Net cost (supply & install, from library)",
+				ComponentName = labour.Length == 0
+					? "Net cost (supply & install, from library)"
+					: "Net cost (supply and labour, from library)",
 				Quantity = 1,
 				Unit = unit,
 				TotalPrice = net
@@ -478,6 +546,63 @@ namespace ADLMRateGen.ViewModel.MepWork
 			MepWorkItems.Add(Compose("Air Conditioning & Ventilation",
 				"Ceiling fan complete with regulator; installed and connected", "No.",
 				("Ceiling fan complete with regulator", 1, "No.")));
+
+			// ── Plumbing built up from supply prices and the library's labour outputs.
+			//    Data/labourSpecs.json:
+			//      Pipefitter (PPR fusion and uPVC solvent welding), gang 1 fitter + 1 helper:
+			//        "30-60 joints/day, or 20-30 m/day of run pipe"      -> 25 m/day, 45 joints/day
+			//      Plumber (skilled), gang 1 plumber + 1.5 to 2 helpers:
+			//        "8-10 m/day supply pipe, 6-8 m/day drain pipe, or about 3 toilets/day"
+			//                                                           -> 7 m/day drain, 3 fittings/day, 1.75 mates
+			//    Midpoints of the published ranges; every quantity is editable in the
+			//    composition, because output is the figure that changes from job to job.
+			const string Fitter = "Pipefitter (PPR fusion and uPVC solvent welding)";
+			const string Plumber = "Plumber (skilled)";
+			const string Mate = "Plumber mate";
+			const double RunPerDay = 25, JointsPerDay = 45, DrainPerDay = 7, FittingsPerDay = 3, Mates = 1.75;
+
+			foreach (var (size, pipe) in new[]
+			{
+				("15mm", "PPR pressure pipe, PN10 to BS EN ISO 15874, 15mm"),
+				("25mm", "PPR pressure pipe, PN10 to BS EN ISO 15874, 25mm"),
+				("32mm", "PPR pressure pipe, PN10 to BS EN ISO 15874, 32mm"),
+			})
+			{
+				MepWorkItems.Add(Build("Water Supply",
+					$"{size} PPR pressure pipe, PN10 to BS EN ISO 15874, heat-fusion jointed; fixed with clips", "m",
+					new[] { (pipe, 1.0, "m") },
+					new[] { (Fitter, Math.Round(1 / RunPerDay, 4), "day"), (Mate, Math.Round(1 / RunPerDay, 4), "day") }));
+			}
+
+			MepWorkItems.Add(Build("Water Supply",
+				"15mm isolating valve, jointed to PPR pipework", "No.",
+				new[] { ("Isolating valve, 15mm", 1.0, "No.") },
+				new[] { (Fitter, Math.Round(2 / JointsPerDay, 4), "day"), (Mate, Math.Round(2 / JointsPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Water Supply",
+				"25mm chromium plated stop valve, jointed to PPR pipework", "No.",
+				new[] { ("Stop valve, 25mm, chromium plated", 1.0, "No.") },
+				new[] { (Fitter, Math.Round(2 / JointsPerDay, 4), "day"), (Mate, Math.Round(2 / JointsPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Soil & Waste",
+				"100mm uPVC soil, waste and vent pipe to BS 4514, solvent welded; fixed with brackets", "m",
+				new[] { ("uPVC soil, waste and vent pipe to BS 4514, 100mm", 1.0, "m") },
+				new[] { (Plumber, Math.Round(1 / DrainPerDay, 4), "day"), (Mate, Math.Round(Mates / DrainPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Soil & Waste",
+				"38mm uPVC liquid waste and vent pipe, solvent welded; fixed with clips", "m",
+				new[] { ("uPVC liquid waste and vent pipe, 38mm", 1.0, "m") },
+				new[] { (Plumber, Math.Round(1 / DrainPerDay, 4), "day"), (Mate, Math.Round(Mates / DrainPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Rainwater",
+				"75mm uPVC rigid rainwater downpipe, fixed to walls with sockets", "m",
+				new[] { ("uPVC rigid rainwater downpipe, 75mm", 1.0, "m") },
+				new[] { (Plumber, Math.Round(1 / DrainPerDay, 4), "day"), (Mate, Math.Round(Mates / DrainPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Sanitary",
+				"Shower and shower tray with all accessories; fixed and connected", "No.",
+				new[] { ("Shower and shower tray, including all accessories", 1.0, "No.") },
+				new[] { (Plumber, Math.Round(1 / FittingsPerDay, 4), "day"), (Mate, Math.Round(Mates / FittingsPerDay, 4), "day") }));
 
 			// ── Fire protection
 			MepWorkItems.Add(Compose("Fire Protection",

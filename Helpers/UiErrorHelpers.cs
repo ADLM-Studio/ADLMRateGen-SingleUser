@@ -23,7 +23,7 @@ namespace ADLMRateGen.Helpers
                 $"Server: {baseUrl}\n" +
                 $"Error: {ex.Message}";
 
-            var result = MessageBox.Show(
+            var result = ADLMRateGen.Helpers.AppMessage.Show(
                 message,
                 "Connection timed out",
                 MessageBoxButton.OKCancel,

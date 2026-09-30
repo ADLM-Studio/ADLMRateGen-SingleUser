@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -143,7 +143,7 @@ namespace ADLMRateGen.View
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Unable to open link.\n{ex.Message}", "ADLM Rate Gen");
+                ADLMRateGen.Helpers.AppMessage.Show($"Unable to open link.\n{ex.Message}", "ADLM Rate Gen");
             }
         }
     }

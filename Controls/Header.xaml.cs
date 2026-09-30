@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -58,7 +58,7 @@ namespace ADLMCivilPlugin.Controls
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"Unable to open profile.\n{ex.Message}");
+                ADLMRateGen.View.Suite.SuiteDialog.Tell("No browser opened", "Open adlmstudio.net/profile in your browser. " + ex.Message);
             }
         }
 
@@ -87,7 +87,7 @@ namespace ADLMCivilPlugin.Controls
 
         private void UpdateThemeIcon(bool isDark)
         {
-            ColorModeIcon.Icon = isDark ? IconChar.Sun : IconChar.Moon;
+            ColorModeIcon.Tag = FindResource(isDark ? "Ic.Sun" : "Ic.Moon");
             ColorModeButton.ToolTip = isDark ? "Switch to light mode" : "Switch to dark mode";
         }
 
@@ -102,23 +102,15 @@ namespace ADLMCivilPlugin.Controls
             var count = UserRateEditStore.Current.TotalOverrideCount;
             if (count == 0)
             {
-                MessageBox.Show(
-                    "You don't have any saved rate edits to reset.",
-                    "Nothing to reset",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                ADLMRateGen.View.Suite.SuiteDialog.Tell("Nothing to reset",
+                    "Every quantity is already as ADLM published it.");
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                $"Reset all {count} saved rate-build-up edits back to the shipped defaults?\n\n" +
-                "This affects EVERY section (Concrete, Blockwork, Groundwork, Finishes, Painting, " +
-                "Roofing, Steelwork, Windows & Doors) and will sync the reset to QUIV and HERON.\n\n" +
-                "This action cannot be undone.",
-                "Reset All Rate Edits",
-                MessageBoxButton.OKCancel,
-                MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.OK) return;
+            if (!ADLMRateGen.View.Suite.SuiteDialog.Ask("Reset every rate edit?",
+                    $"All {count} quantities you changed, in every trade and service, go back to what ADLM published. " +
+                    "The reset syncs to QUIV and HERON, and it cannot be undone. Your custom rates are not touched.",
+                    "Reset all", "Cancel", ADLMRateGen.View.Suite.SuiteDialog.Tone.Danger)) return;
 
             await RateEditCommands.ResetAllAsync();
             // The store fires OverridesChanged after ClearAll → each section VM is

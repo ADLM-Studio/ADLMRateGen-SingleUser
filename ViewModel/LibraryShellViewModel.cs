@@ -224,7 +224,7 @@ namespace ADLMRateGen.ViewModel
 			var pick = SelectedArchive;
 			if (pick == null) return;
 
-			var ask = MessageBox.Show(
+			var ask = ADLMRateGen.Helpers.AppMessage.Show(
 				$"Restore the material and labour libraries as they were on {pick.TakenAt:dd MMM yyyy} at {pick.TakenAt:HH:mm}?\n\n"
 				+ $"{pick.MaterialRows} materials and {pick.LabourRows} labour rates will be put back.\n\n"
 				+ "The current library is archived first, so this can itself be undone.",
@@ -241,7 +241,7 @@ namespace ADLMRateGen.ViewModel
 			}
 			else
 			{
-				MessageBox.Show("That archive could not be read, so nothing was changed.",
+				ADLMRateGen.Helpers.AppMessage.Show("That archive could not be read, so nothing was changed.",
 					"Restore library", MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
 		}
@@ -331,7 +331,7 @@ namespace ADLMRateGen.ViewModel
 				var rows = PriceConflictRows.Where(r => r.IsSelected).Select(r => r.Source).ToList();
 				if (rows.Count == 0) return;
 
-				var ask = MessageBox.Show(
+				var ask = ADLMRateGen.Helpers.AppMessage.Show(
 					$"Take the published price on {rows.Count} rate(s), replacing your own figure?\n\n"
 					+ "Your current library is archived first, so this can be undone.",
 					"Use published prices", MessageBoxButton.OKCancel, MessageBoxImage.Question);
