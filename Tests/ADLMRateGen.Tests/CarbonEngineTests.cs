@@ -38,6 +38,15 @@ namespace ADLMRateGen.Tests
         }
 
         [Fact]
+        public void Cement_carries_a_Nigerian_low_end()
+        {
+            var c = CarbonEngine.Assess("Cement Based Products", "Cement (50kg bag)", "Bag", 1)!;
+            Assert.Equal(50 * 0.83, c.A13, 6);
+            Assert.True(c.TotalLow < c.Total);
+            Assert.Equal(50 * (0.57 - 0.83) * (1 + c.Factor.Wf), c.TotalLow - c.Total, 6);
+        }
+
+        [Fact]
         public void A_tile_takes_its_thickness_from_the_build_up_line()
         {
             var c = CarbonEngine.Assess("Finishes - Ceramic floor tiles", "Ceramic floor tiles", "m2", 1, "600 x 600 x 10mm vitrified floor tiles")!;
@@ -60,10 +69,10 @@ namespace ADLMRateGen.Tests
         }
 
         [Fact]
-        public void Reinforcement_is_per_tonne_at_the_worldwide_factor()
+        public void Reinforcement_is_per_tonne_at_the_scrap_EAF_factor()
         {
             var c = CarbonEngine.Assess("High Tensile Steel Bar Reinforcement", "1/2\" diameter (93 pieces) - 12mm diameter.", "Tonne", 1)!;
-            Assert.Equal(1000 * 1.99, c.A13, 6);
+            Assert.Equal(1000 * 0.821, c.A13, 6);   // CARES EPD 0060, scrap-based EAF
         }
 
         [Theory]

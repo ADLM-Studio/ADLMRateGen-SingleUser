@@ -5,7 +5,9 @@
   "sources": [
     "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data)",
     "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3",
-    "UK Government GHG Conversion Factors 2024 (DESNZ), Scope 1 fuels"
+    "UK Government GHG Conversion Factors 2024 (DESNZ), Scope 1 fuels",
+    "CARES EPD 0060 (2026)",
+    "Dangote Cement 2024 Annual Report; Lafarge Africa 2024 Annual Report"
   ],
   "factors": [
     {
@@ -83,7 +85,9 @@
       "wf": 0.053,
       "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (concrete in situ)",
       "c34": 0.013,
-      "fuel": false
+      "fuel": false,
+      "factorLow": 0.57,
+      "lowSource": "Nigerian producers' own reporting, Scope 1 only (the kiln and its fuel): Dangote Cement 2024 Annual Report, 570 kg CO2 per tonne; Lafarge Africa 2024, 537 kg net CO2 per tonne of cementitious. It leaves out purchased power, quarrying and raw-material transport, so it is a floor, not the full A1-A3"
     },
     {
       "id": "sand",
@@ -147,10 +151,10 @@
     },
     {
       "id": "rebar",
-      "label": "Reinforcement bar",
+      "label": "Reinforcement bar, scrap-based EAF",
       "pattern": "^(high tensile|mild) steel bar reinforcement :: |^ :: .*(reinforcement bar|rebar|high yield)",
-      "factor": 1.99,
-      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: reinforcement bars, worldwide (Worldsteel LCI, world average) 1.99 kgCO2e/kg",
+      "factor": 0.821,
+      "factorSource": "CARES EPD 0060 (2026, EN 15804+A2): carbon steel reinforcing bar, secondary (scrap-based) EAF route, Kroman Celik, Turkiye, GWP-total A1-A3 821 kg CO2e per tonne. Chosen because Nigeria's rebar mills (Kam Industries, African Foundries) melt scrap in electric furnaces and Turkiye supplies much of the imported rebar; the world average (IStructE 2020, 1.99) is mostly blast-furnace steel",
       "mass": {
         "perUnit": {
           "tonne": 1000,
@@ -277,7 +281,9 @@
       "wf": 0.01,
       "wfBasis": "IStructE (2020): waste rate 1%, waste factor 0.010 (precast concrete)",
       "c34": 0.013,
-      "fuel": false
+      "fuel": false,
+      "factorLow": 0.0545,
+      "lowSource": "the block's cement (NIS 1:8 mix, about 20 x 225 mm blocks per 50 kg bag, Structville: 2.5 kg cement per 27.5 kg block) taken at the Nigerian producers' Scope 1 figure, 0.57 kgCO2e/kg (Dangote 2024), instead of 0.83"
     },
     {
       "id": "softwood",

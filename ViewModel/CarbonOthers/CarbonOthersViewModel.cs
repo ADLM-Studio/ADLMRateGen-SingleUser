@@ -78,6 +78,14 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
         public double CarbonA5 { get; set; }
         public double CarbonTotal { get; set; }
 
+        /// <summary>The low end: cement at the Nigerian producers' Scope 1 figure. Equal to CarbonTotal when no cement is in it.</summary>
+        public double CarbonLow { get; set; }
+
+        /// <summary>"215 - 298", or "298" when the rate has no range.</summary>
+        public string CarbonRange => CarbonTotal - CarbonLow >= 0.005
+            ? $"{CarbonLow:N2} - {CarbonTotal:N2}"
+            : CarbonTotal.ToString("N2");
+
         /// <summary>Share of the build-up's cost whose carbon is accounted for (labour and plant hire count as zero).</summary>
         public double Coverage { get; set; }
         public bool HasAssumedMass { get; set; }

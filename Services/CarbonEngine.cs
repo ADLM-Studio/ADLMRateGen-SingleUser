@@ -23,8 +23,10 @@ namespace ADLMRateGen.Services
     {
         public sealed class Factor
         {
-            public string Id = "", Label = "", Pattern = "", Source = "", MassBasis = "", WasteBasis = "";
+            public string Id = "", Label = "", Pattern = "", Source = "", MassBasis = "", WasteBasis = "", LowSource = "";
             public double Value, A4, Wf, C34;
+            /// <summary>The low end of a range (Nigerian cement, Scope 1 only), or null when the factor is single.</summary>
+            public double? ValueLow;
             public bool Fuel, MassAssumed;
             public JObject Mass = new();
             public Regex Rx = null!;
@@ -35,6 +37,8 @@ namespace ADLMRateGen.Services
             public Factor Factor = null!;
             public double Kg, A13, A4, A5w, A5a;
             public double Total => A13 + A4 + A5w + A5a;
+            /// <summary>The same line with the factor's low end (equal to Total when the factor has none).</summary>
+            public double TotalLow;
             public string Basis = "";
         }
 
@@ -72,6 +76,8 @@ namespace ADLMRateGen.Services
                         MassBasis = f.Value<string>("massBasis") ?? "",
                         WasteBasis = f.Value<string>("wfBasis") ?? "",
                         Value = f.Value<double?>("factor") ?? 0,
+                        ValueLow = f.Value<double?>("factorLow"),
+                        LowSource = f.Value<string>("lowSource") ?? "",
                         A4 = f.Value<double?>("a4") ?? 0,
                         Wf = f.Value<double?>("wf") ?? 0,
                         C34 = f.Value<double?>("c34") ?? 0.013,
@@ -113,6 +119,7 @@ namespace ADLMRateGen.Services
             if (f.Fuel)
             {
                 r.A5a = amount * f.Value;
+                r.TotalLow = r.A5a;
                 r.Basis = $"{f.Label}: {amount.ToString("0.###", inv)} x {f.Value.ToString("0.#####", inv)} kgCO2e (site energy, A5a). {f.Source}.";
                 return r;
             }
@@ -120,10 +127,15 @@ namespace ADLMRateGen.Services
             r.A13 = amount * f.Value;
             r.A4 = amount * f.A4;
             r.A5w = amount * f.Wf * (f.Value + f.A4 + _c2 + f.C34);
+            var low = f.ValueLow ?? f.Value;
+            r.TotalLow = amount * low + r.A4 + amount * f.Wf * (low + f.A4 + _c2 + f.C34);
             r.Basis =
                 $"{f.Label}: {amount.ToString("0.###", inv)} kg ({perUnit.Value.ToString("0.###", inv)} kg per {unit}; {f.MassBasis}" +
                 (f.MassAssumed ? ", assumed" : "") + $") x {f.Value.ToString("0.####", inv)} kgCO2e/kg. {f.Source}. " +
-                $"Transport {f.A4.ToString("0.###", inv)} kgCO2e/kg; waste: {f.WasteBasis}.";
+                $"Transport {f.A4.ToString("0.###", inv)} kgCO2e/kg; waste: {f.WasteBasis}." +
+                (f.ValueLow.HasValue
+                    ? $" Low end {r.TotalLow.ToString("0.###", inv)} kgCO2e at {f.ValueLow.Value.ToString("0.###", inv)} kgCO2e/kg: {f.LowSource}."
+                    : "");
             return r;
         }
 

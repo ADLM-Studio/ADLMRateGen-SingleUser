@@ -39,7 +39,7 @@ namespace ADLMRateGen.Services
         private static readonly Regex KindPrefix = new(@"^(material|labour|constant)\s*:\s*", RegexOptions.IgnoreCase);
 
         /// <summary>A rate another build-up can reuse: its unit cost and its carbon per unit.</summary>
-        private sealed record Ref(string Trade, string Description, string Unit, double NetCost, double CarbonPerUnit);
+        private sealed record Ref(string Trade, string Description, string Unit, double NetCost, double CarbonPerUnit, double CarbonLowPerUnit);
 
         public static List<CarbonRateItem> Build(IEnumerable<(string Trade, object Item)> sources,
                                                  MaterialLibraryViewModel matLib, LabourLibraryViewModel labLib,
@@ -57,7 +57,7 @@ namespace ADLMRateGen.Services
             for (int pass = 0; pass < 4; pass++)
             {
                 var refs = done.Values.Where(c => c.NetCost > 0 && c.CarbonTotal > 0)
-                    .Select(c => new Ref(c.Trade, c.Description, c.Unit, c.NetCost, c.CarbonTotal)).ToList();
+                    .Select(c => new Ref(c.Trade, c.Description, c.Unit, c.NetCost, c.CarbonTotal, c.CarbonLow)).ToList();
                 int before = done.Count;
                 double totalBefore = done.Values.Sum(c => c.CarbonTotal);
                 foreach (var (trade, item) in src)
@@ -258,6 +258,8 @@ namespace ADLMRateGen.Services
             double resourceCost = 0, coveredCost = 0, a13 = 0, a4 = 0, a5w = 0, a5a = 0;
             // the part of the build-up costed per day or per hour, which the rate divides by its output
             double batchCost = 0, b13 = 0, b4 = 0, b5w = 0, b5a = 0;
+            // how far the low end (Nigerian cement, Scope 1) sits below the figure, all and per-day lines
+            double gap = 0, bgap = 0;
             bool anyAssumed = false;
             var breakdown = new ObservableCollection<CarbonRateBreakdownLine>();
 
@@ -345,6 +347,8 @@ namespace ADLMRateGen.Services
                         var kg = rf.CarbonPerUnit * q;
                         a13 += kg;                 // carried as product carbon: the referenced rate's A1-A5 per unit
                         if (batch) b13 += kg;
+                        var g = (rf.CarbonPerUnit - rf.CarbonLowPerUnit) * q;
+                        gap += g; if (batch) bgap += g;
                         bl.CarbonKg = kg;
                         bl.CarbonBasis = $"Uses {q:0.####} {rf.Unit} of the {rf.Trade} rate \"{rf.Description}\" at {rf.CarbonPerUnit:0.###} kgCO2e per {rf.Unit} (that rate's own upfront carbon, A1-A5).";
                         breakdown.Add(bl);
@@ -357,6 +361,8 @@ namespace ADLMRateGen.Services
                     coveredCost += total;
                     a13 += carbon.A13; a4 += carbon.A4; a5w += carbon.A5w; a5a += carbon.A5a;
                     if (batch) { b13 += carbon.A13; b4 += carbon.A4; b5w += carbon.A5w; b5a += carbon.A5a; }
+                    var lg = carbon.Total - carbon.TotalLow;
+                    gap += lg; if (batch) bgap += lg;
                     anyAssumed |= carbon.Factor.MassAssumed;
                     bl.CarbonKg = carbon.Total;
                     bl.CarbonBasis = carbon.Basis;
@@ -402,6 +408,7 @@ namespace ADLMRateGen.Services
             double Unit(double all, double b) => ((all - b) + b * batchScale) * scale;
             a13 = Unit(a13, b13); a4 = Unit(a4, b4); a5w = Unit(a5w, b5w); a5a = Unit(a5a, b5a);
             var perUnit = a13 + a4 + a5w + a5a;
+            var perUnitLow = perUnit - Unit(gap, bgap);
             var unitName = Prop<string>(item, "Unit") ?? "";
 
             breakdown.Add(new CarbonRateBreakdownLine
@@ -428,6 +435,8 @@ namespace ADLMRateGen.Services
             Sum("Site waste, A5w", a5w);
             if (a5a > 0) Sum("Site plant fuel, A5a", a5a);
             Sum($"Upfront carbon, A1-A5, per {unitName}", perUnit);
+            if (perUnit - perUnitLow > 0.0005)
+                Sum("Low end, cement at the Nigerian producers' own figure (Scope 1, a floor)", perUnitLow);
 
             var coverage = Math.Min(1.0, coveredCost / resourceCost);
             return new CarbonRateItem
@@ -443,6 +452,7 @@ namespace ADLMRateGen.Services
                 CarbonA4 = a4,
                 CarbonA5 = a5w + a5a,
                 CarbonTotal = Math.Round(perUnit, 3),
+                CarbonLow = Math.Round(perUnitLow, 3),
                 Coverage = coverage,
                 HasAssumedMass = anyAssumed,
                 BreakdownLines = breakdown,

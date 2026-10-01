@@ -137,10 +137,10 @@
                                             Binding="{Binding TotalCost, Converter={StaticResource MoneyConv}}"
                                             ElementStyle="{StaticResource SxCellNumB}" />
                         <!-- Carbon mode: upfront carbon per unit, and how much of the build-up it accounts for -->
-                        <DataGridTextColumn x:Name="ColCarbon" Header="KGCO2E / UNIT" Width="Auto" MinWidth="124"
+                        <DataGridTextColumn x:Name="ColCarbon" Header="KGCO2E / UNIT" Width="Auto" MinWidth="150"
                                             Visibility="Collapsed"
                                             HeaderStyle="{StaticResource SxTableHeaderRight}"
-                                            Binding="{Binding CarbonTotal, StringFormat={}{0:N2}}"
+                                            Binding="{Binding CarbonRange}"
                                             ElementStyle="{StaticResource SxCellNumB}" />
                         <DataGridTemplateColumn x:Name="ColCoverage" Header="COVERAGE" Width="96" Visibility="Collapsed"
                                                 HeaderStyle="{StaticResource SxTableHeaderRight}">
