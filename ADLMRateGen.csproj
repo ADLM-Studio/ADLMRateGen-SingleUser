@@ -160,6 +160,7 @@
     <Resource Include="Resources\zar.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Resources\RateGenIcon.png" />
     <Resource Include="Resources\adlmlogosml.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
