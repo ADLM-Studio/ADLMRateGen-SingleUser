@@ -3,6 +3,7 @@ using ADLMRateGen.Helpers;
 using ADLMRateGen.Services;
 using ADLMRateGen.ViewModel.Groundwork; // only for GetItemsFromDB
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -45,6 +46,12 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
         /// rather than library items and have nothing to open.
         /// </summary>
         public bool CanOpenInLibrary => !string.IsNullOrWhiteSpace(RefName);
+
+        /// <summary>Upfront carbon of this line, kgCO2e; null when it could not be worked out.</summary>
+        public double? CarbonKg { get; set; }
+
+        /// <summary>How the line's carbon was worked out: quantity, mass, factor and its source.</summary>
+        public string CarbonBasis { get; set; } = "";
     }
 
     public class CarbonRateItem
@@ -61,7 +68,19 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
         public ObservableCollection<CarbonRateBreakdownLine> BreakdownLines { get; set; }
             = new ObservableCollection<CarbonRateBreakdownLine>();
 
-        public string Source { get; set; } = ""; // "Compute" | "AdminRate"
+        public string Source { get; set; } = ""; // "Compute" | "AdminRate" | "Carbon"
+
+        /* Carbon rates (Services/CarbonRates): upfront embodied carbon per unit of the rate,
+           RICS modules A1-A5, built from the rate's own build-up. */
+        public string Trade { get; set; } = "";
+        public double CarbonA13 { get; set; }
+        public double CarbonA4 { get; set; }
+        public double CarbonA5 { get; set; }
+        public double CarbonTotal { get; set; }
+
+        /// <summary>Share of the build-up's cost whose carbon is accounted for (labour and plant hire count as zero).</summary>
+        public double Coverage { get; set; }
+        public bool HasAssumedMass { get; set; }
     }
 
     public class CarbonOthersViewModel : ViewModelBase
@@ -88,6 +107,8 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
         {
             _helper = new GetItemsFromDB(matLib, labourLib);
             _matLibForRouting = matLib;
+            _labLib = labourLib;
+            _rebuildTimer.Tick += (_, __) => { _rebuildTimer.Stop(); Rebuild(); };
 
             matLib.LibraryChanged += OnLibraryChanged;
             labourLib.LibraryChanged += OnLibraryChanged;
@@ -223,9 +244,37 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
             else disp.Invoke(Rebuild);
         }
 
+        /* ───────────── carbon rates ─────────────
+           Every priced rate in the trades and services, with its upfront carbon
+           (A1-A5) worked out from its own build-up (Services/CarbonRates). The
+           window hands over the rates through Sources; a change anywhere in them
+           (a library price, an edited quantity) asks for a rebuild, collected into
+           one so a burst of recomputes repaints once. */
+        private readonly LabourLibraryViewModel _labLib;
+        private readonly System.Windows.Threading.DispatcherTimer _rebuildTimer =
+            new() { Interval = TimeSpan.FromMilliseconds(400) };
+
+        public Func<IEnumerable<(string Trade, object Item)>>? Sources { get; set; }
+
+        public void RequestRebuild()
+        {
+            _rebuildTimer.Stop();
+            _rebuildTimer.Start();
+        }
+
+        public int CarbonRateCount => Items.Count(i => i.Source == "Carbon");
+
+        private void AppendCarbonRates()
+        {
+            if (Sources == null || _matLibForRouting == null) return;
+            foreach (var c in CarbonRates.Build(Sources(), _matLibForRouting, _labLib, OverheadPercent, ProfitPercent))
+                Items.Add(c);
+        }
+
         private void Rebuild()
         {
             Items.Clear();
+            AppendCarbonRates();
             AppendComputeItems();
             AppendAdminRateItems();
             ItemsView.Refresh();
@@ -236,8 +285,8 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
             if (obj is not CarbonRateItem item) return false;
             if (string.IsNullOrWhiteSpace(SearchTerm)) return true;
 
-            return (item.Description ?? "")
-                .IndexOf(SearchTerm, StringComparison.OrdinalIgnoreCase) >= 0;
+            return (item.Description ?? "").IndexOf(SearchTerm, StringComparison.OrdinalIgnoreCase) >= 0
+                || (item.Trade ?? "").IndexOf(SearchTerm, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void ToggleNetCostFilter()

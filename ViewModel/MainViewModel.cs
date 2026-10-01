@@ -553,6 +553,30 @@ namespace ADLMRateGen.ViewModel
             PaintWorkViewModel = paintVM;
             SteelWorkViewModel = steelVM;
             CarbonOthersViewModel = carbonVM;
+
+            // Carbon rates are the carbon of every priced rate, from its own build-up
+            // (Services/CarbonRates): hand the trades and services over, and rebuild
+            // when any of them changes.
+            carbonVM.Sources = () =>
+                GroundWorkViewModel.GroundworkItems.Select(i => ("Ground", (object)i))
+                .Concat(ConcreteViewModel.ConcreteWorkItems.Select(i => ("Concrete", (object)i)))
+                .Concat(BlockworkViewModel.BlockworkItems.Select(i => ("Block Works", (object)i)))
+                .Concat(FinishesViewModel.FinishesItems.Select(i => ("Finishes", (object)i)))
+                .Concat(RoofWorkViewModel.RoofWorkItems.Select(i => ("Roofs", (object)i)))
+                .Concat(PaintWorkViewModel.PaintWorkItems.Select(i => ("Painting", (object)i)))
+                .Concat(SteelWorkViewModel.SteelWorkItems.Select(i => ("Steel", (object)i)))
+                .Concat(WindowAndDoorViewModel.WindowAndDoorItems.Select(i => ("Window and Door", (object)i)))
+                .Concat(MepWorkViewModel.MepWorkItems.Select(i => (MepWorkViewModel.DisciplineOf(i.Section), (object)i)))
+                .ToList();
+            foreach (var coll in new System.Collections.Specialized.INotifyCollectionChanged[]
+            {
+                GroundWorkViewModel.GroundworkItems, ConcreteViewModel.ConcreteWorkItems, BlockworkViewModel.BlockworkItems,
+                FinishesViewModel.FinishesItems, RoofWorkViewModel.RoofWorkItems, PaintWorkViewModel.PaintWorkItems,
+                SteelWorkViewModel.SteelWorkItems, WindowAndDoorViewModel.WindowAndDoorItems, MepWorkViewModel.MepWorkItems,
+            })
+                coll.CollectionChanged += (_, __) => carbonVM.RequestRebuild();
+            UserRateEditStore.Current.OverridesChanged += (_, __) => carbonVM.RequestRebuild();
+            carbonVM.RequestRebuild();
             CustomRateListViewModel = customListVM;
             CustomRateEntryViewModel = customEntryVM;
             SignInViewModel = signInVM;

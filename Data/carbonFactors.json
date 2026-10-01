@@ -1,0 +1,504 @@
+{
+  "_readme": "Embodied carbon factors for RateGen's carbon rates. A library material is matched by 'pattern' (case-insensitive regular expression on '<category> :: <name>'). factor is kgCO2e per kg of material (A1-A3, cradle to gate) or, for fuels, kgCO2e per unit burnt on site (A5a). mass converts the library unit to kg; massAssumed marks a mass that is an assumption rather than stated by the item, and RateGen says so on screen. a4 is transport to site (BEIS 2020 via CIDB 2021 and IStructE 2020: 0.005 kgCO2e/kg local, 50 km by road; 0.032 national, 300 km by road). A5w (site waste) = wf x (A1-A3 + A4 + C2 + C3-C4), C2 0.005 kgCO2e/kg, C3-C4 0.013 (1.77 for timber) (IStructE 2020; CIDB 2021). Labour carries no material carbon; worker transport (A5.4) is not counted. The first matching entry wins.",
+  "method": "RICS Whole life carbon assessment for the built environment (2nd ed., 2023), upfront carbon A1-A5, calculated as IStructE How to calculate embodied carbon (2020)",
+  "c2": 0.005,
+  "sources": [
+    "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data)",
+    "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3",
+    "UK Government GHG Conversion Factors 2024 (DESNZ), Scope 1 fuels"
+  ],
+  "factors": [
+    {
+      "id": "diesel",
+      "label": "Diesel (AGO) burnt on site",
+      "pattern": "^fuels :: diesel$|^ :: .*\\bdiesel\\b",
+      "factor": 2.66155,
+      "factorSource": "UK Government GHG Conversion Factors 2024 (DESNZ), Scope 1 fuels: Diesel (100% mineral diesel) 2.66155 kgCO2e per litre",
+      "mass": {
+        "perUnit": {
+          "litre": 1
+        }
+      },
+      "massBasis": "per litre burnt",
+      "massAssumed": false,
+      "a4": 0,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": true
+    },
+    {
+      "id": "petrol",
+      "label": "Petrol (PMS) burnt on site",
+      "pattern": "^fuels :: petrol$|^ :: .*\\bpetrol\\b",
+      "factor": 2.35372,
+      "factorSource": "UK Government GHG Conversion Factors 2024 (DESNZ), Scope 1 fuels: Petrol (100% mineral petrol) 2.35372 kgCO2e per litre",
+      "mass": {
+        "perUnit": {
+          "litre": 1
+        }
+      },
+      "massBasis": "per litre burnt",
+      "massAssumed": false,
+      "a4": 0,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": true
+    },
+    {
+      "id": "lpg",
+      "label": "LPG burnt on site",
+      "pattern": "^fuels :: gas \\(13 kg cylinder\\)$",
+      "factor": 2.93936,
+      "factorSource": "UK Government GHG Conversion Factors 2024 (DESNZ), Scope 1 fuels: LPG 2,939.36 kgCO2e per tonne",
+      "mass": {
+        "perUnit": {
+          "cylinder": 13
+        }
+      },
+      "massBasis": "13 kg per cylinder, as named",
+      "massAssumed": false,
+      "a4": 0,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": true
+    },
+    {
+      "id": "cement",
+      "label": "Cement",
+      "pattern": "^cement based products :: (cement \\((50kg|jumbo) bag\\)|coloured cement|white cement)$|^ :: cement\\b",
+      "factor": 0.83,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Cement (commonly used)' 0.83 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "bag": 50,
+          "tonne": 1000
+        }
+      },
+      "massBasis": "50 kg per bag, 1,000 kg per tonne, as named",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (concrete in situ)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "sand",
+      "label": "Sand",
+      "pattern": "^earthwork and filling materials :: .*\\bsand\\b|^ :: .*\\bsand\\b",
+      "factor": 0.0049,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'General aggregate and sand' 0.0049 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "m3": 1600,
+          "tonne": 1000
+        }
+      },
+      "massBasis": "loose bulk density 1,600 kg/m3",
+      "massAssumed": true,
+      "a4": 0.005,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (concrete in situ)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "crushed",
+      "label": "Crushed rock, granite",
+      "pattern": "^crushed rock products :: (\\d+-\\d+mm|granite.*)$|^ :: .*(granite|crushed)",
+      "factor": 0.01,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Gravel, crushed' 0.01 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "m3": 1600,
+          "tonne": 1000
+        }
+      },
+      "massBasis": "loose bulk density 1,600 kg/m3; 1,000 kg per tonne",
+      "massAssumed": true,
+      "a4": 0.005,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (concrete in situ)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "fill",
+      "label": "Hardcore, laterite, gravel",
+      "pattern": "^crushed rock products :: hardcore|^earthwork and filling materials :: (laterite|unwashed gravel|washed gravel)|^ :: .*(hardcore|laterite)",
+      "factor": 0.0049,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'General aggregate and sand' 0.0049 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "m3": 1600,
+          "tonne": 1000
+        }
+      },
+      "massBasis": "loose bulk density 1,600 kg/m3; 1,000 kg per tonne",
+      "massAssumed": true,
+      "a4": 0.005,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (concrete in situ)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "rebar",
+      "label": "Reinforcement bar",
+      "pattern": "^(high tensile|mild) steel bar reinforcement :: |^ :: .*(reinforcement bar|rebar|high yield)",
+      "factor": 1.99,
+      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: reinforcement bars, worldwide (Worldsteel LCI, world average) 1.99 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "tonne": 1000,
+          "kg": 1
+        }
+      },
+      "massBasis": "1,000 kg per tonne",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (steel reinforcement)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "wire",
+      "label": "Binding wire",
+      "pattern": "binding wire",
+      "factor": 2.27,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Steel, wire rod' 2.27 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "roll": 25,
+          "kg": 1
+        }
+      },
+      "massBasis": "25 kg per roll, as named",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (steel reinforcement)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "mesh",
+      "label": "Steel fabric mesh, BS 4483",
+      "pattern": "^mesh reinforcement to b\\.s\\. 4483 :: a(142|193|252)\\b",
+      "factor": 0.77,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Cold-rolled reinforcing steel and electrowelded mesh' 0.77 kgCO2e/kg",
+      "mass": {
+        "rule": "mesh"
+      },
+      "massBasis": "BS 4483 nominal mass (A142 2.22, A193 3.02, A252 3.95 kg/m2) x 4.8 x 2.4 m sheet",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.053,
+      "wfBasis": "IStructE (2020): waste rate 5%, waste factor 0.053 (steel reinforcement)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "plate",
+      "label": "Steel plate",
+      "pattern": "^structural steel plates :: |^structural steel sections :: steel plate, supply",
+      "factor": 2.46,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Steel plate' 2.46 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "tonne": 1000,
+          "kg": 1
+        },
+        "rule": "plate"
+      },
+      "massBasis": "1,000 kg per tonne; sheets from the size as named x 7,850 kg/m3",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (steel frame)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "sections",
+      "label": "Structural steel sections",
+      "pattern": "^structural steel sections :: (universal beam|rolled steel)|^structural steel :: structural steel$|^ :: .*(universal beam|structural steel)",
+      "factor": 1.55,
+      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: structural sections, worldwide (Worldsteel LCI) 1.55 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "tonne": 1000,
+          "kg": 1
+        }
+      },
+      "massBasis": "1,000 kg per tonne",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (steel frame)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "nails",
+      "label": "Nails and screws",
+      "pattern": "^nails and screws and other accessories :: .*\\(25kg bag\\)$",
+      "factor": 2.27,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Steel, wire rod' 2.27 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "bag": 25
+        }
+      },
+      "massBasis": "25 kg per bag, as named",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (steel frame)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "blocks",
+      "label": "Sandcrete hollow blocks",
+      "pattern": "^cement based products :: .*hollow blocks$",
+      "factor": 0.0781,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Concrete block 10 MPa' 0.0781 kgCO2e/kg",
+      "mass": {
+        "rule": "block"
+      },
+      "massBasis": "block mass from its size: 225 mm 23.8 kg, 150 mm 17.3 kg, 100 mm 13.5 kg (solid share 55/60/70% at 1,900 kg/m3)",
+      "massAssumed": true,
+      "a4": 0.005,
+      "wf": 0.01,
+      "wfBasis": "IStructE (2020): waste rate 1%, waste factor 0.010 (precast concrete)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "softwood",
+      "label": "Softwood, sawn",
+      "pattern": "^timber - softwood :: ",
+      "factor": 0.263,
+      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: softwood studwork/framing, 100% FSC/PEFC 0.263 kgCO2e/kg (sequestration excluded)",
+      "mass": {
+        "rule": "timber",
+        "density": 500
+      },
+      "massBasis": "section and length as named x 500 kg/m3",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (timber, plywood)",
+      "c34": 1.77,
+      "fuel": false
+    },
+    {
+      "id": "hardwood",
+      "label": "Hardwood, sawn",
+      "pattern": "^timber - hardwood :: ",
+      "factor": 0.31,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Timber, Hardwood' 0.31 kgCO2e/kg",
+      "mass": {
+        "rule": "timber",
+        "density": 700,
+        "perUnit": {
+          "m3": 700
+        }
+      },
+      "massBasis": "section and length as named x 700 kg/m3",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (timber, plywood)",
+      "c34": 1.77,
+      "fuel": false
+    },
+    {
+      "id": "plywood",
+      "label": "Plywood",
+      "pattern": "^plywood - (brown|white) :: ",
+      "factor": 0.681,
+      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: plywood, 100% FSC/PEFC 0.681 kgCO2e/kg",
+      "mass": {
+        "rule": "board",
+        "density": 600
+      },
+      "massBasis": "board size as named x 600 kg/m3 (the density CIDB 2021 uses)",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (timber, plywood)",
+      "c34": 1.77,
+      "fuel": false
+    },
+    {
+      "id": "alu-sheet",
+      "label": "Aluminium roofing sheet",
+      "pattern": "^(longspan aluminium roofing sheet|lm) :: (\\d\\.\\d+mm \\(\\d+swg\\) sheet|angle ridge)",
+      "factor": 13.0,
+      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: aluminium sheet, worldwide consumption (31% recycled) 13.0 kgCO2e/kg",
+      "mass": {
+        "rule": "aluminium"
+      },
+      "massBasis": "thickness as named x 2,700 kg/m3; ridges 0.7 mm x 600 mm girth",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (steel frame), applied to sheet metal",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "glass",
+      "label": "Sheet glass",
+      "pattern": "^glasswork - sheet glass \\dmm :: ",
+      "factor": 1.44,
+      "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: glass, general 1.44 kgCO2e/kg",
+      "mass": {
+        "rule": "glass"
+      },
+      "massBasis": "pane size and thickness as named x 2,500 kg/m3",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.29,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.29 (glass)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "tile",
+      "label": "Ceramic floor and wall tiles",
+      "pattern": "^finishes - ceramic (floor|wall) tiles :: ",
+      "factor": 0.78,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Ceramic tile (commonly used)' 0.78 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "m2": 20
+        }
+      },
+      "massBasis": "20 kg per m2 of tile",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (ceramic)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "paint-water",
+      "label": "Emulsion (water-based) paint",
+      "pattern": "^(paints - emulsion|.*paints) :: .*(emulsion|superoll|quartz)",
+      "factor": 2.54,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Waterborne paint' 2.54 kgCO2e/kg (ICE 2019)",
+      "mass": {
+        "litres": true,
+        "density": 1.3
+      },
+      "massBasis": "litres as named x 1.3 kg/litre",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.111,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.111 (paint)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "paint-alkyd",
+      "label": "Gloss, oil and alkyd paint",
+      "pattern": "^(paints - gloss oil|.*paints.*) :: (?!.*thinner).*(gloss|alkyd|oil paint|undercoat|enamel|primer|lacquer)",
+      "factor": 3.21,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Alkyd paint, 60% in solvent' 3.21 kgCO2e/kg",
+      "mass": {
+        "litres": true,
+        "density": 1.3
+      },
+      "massBasis": "litres as named x 1.3 kg/litre",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.111,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.111 (paint)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "paint",
+      "label": "Paint, other",
+      "pattern": "^(.*paints.*) :: (?!.*(thinner|cleaner|remover|filla|degreas|amercoat 1\\d\\d$|amercoat [0-9]+$|devoe))",
+      "factor": 2.91,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'General paint' 2.91 kgCO2e/kg",
+      "mass": {
+        "litres": true,
+        "density": 1.3
+      },
+      "massBasis": "litres as named x 1.3 kg/litre",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.111,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.111 (paint)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "bitumen",
+      "label": "Bitumen",
+      "pattern": "^bituminous products :: (60/70|80/100|mci|mco|s125) ex ph$",
+      "factor": 0.19,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Bitumen, straight-run' 0.19 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "tonne": 1000
+        }
+      },
+      "massBasis": "1,000 kg per tonne",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "bit-emulsion",
+      "label": "Bitumen emulsion",
+      "pattern": "^bituminous products :: colas emulsion",
+      "factor": 0.22,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Bitumen emulsion' 0.22 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "tonne": 1000
+        }
+      },
+      "massBasis": "1,000 kg per tonne",
+      "massAssumed": false,
+      "a4": 0.032,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "asphalt",
+      "label": "Asphalt",
+      "pattern": "^bituminous products :: asphalt$",
+      "factor": 0.06,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Asphalt for road, 5% binder content' 0.06 kgCO2e/kg",
+      "mass": {
+        "perUnit": {
+          "tonne": 1000
+        }
+      },
+      "massBasis": "1,000 kg per tonne",
+      "massAssumed": false,
+      "a4": 0.005,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": false
+    }
+  ]
+}

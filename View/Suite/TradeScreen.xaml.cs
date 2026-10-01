@@ -34,6 +34,42 @@ namespace ADLMRateGen.View.Suite
             set => SetValue(EmptyTextProperty, value);
         }
 
+        /// <summary>
+        /// Carbon & Others: the table shows the trade a rate comes from, its total cost,
+        /// its upfront carbon per unit and the coverage of that figure, and the
+        /// overhead and profit boxes (which carbon does not use) step aside.
+        /// </summary>
+        public static readonly DependencyProperty IsCarbonProperty =
+            DependencyProperty.Register(nameof(IsCarbon), typeof(bool), typeof(TradeScreen),
+                new PropertyMetadata(false, (d, _) => ((TradeScreen)d).ApplyMode()));
+
+        public bool IsCarbon
+        {
+            get => (bool)GetValue(IsCarbonProperty);
+            set => SetValue(IsCarbonProperty, value);
+        }
+
+        /// <summary>The line under the title, when the trade's default is not the truth for it.</summary>
+        public static readonly DependencyProperty LedeProperty =
+            DependencyProperty.Register(nameof(Lede), typeof(string), typeof(TradeScreen),
+                new PropertyMetadata(null, (d, e) => { if (e.NewValue is string s) ((TradeScreen)d).LedeText.Text = s; }));
+
+        public string? Lede
+        {
+            get => (string?)GetValue(LedeProperty);
+            set => SetValue(LedeProperty, value);
+        }
+
+        private void ApplyMode()
+        {
+            if (ColTrade == null) return;
+            var carbon = IsCarbon ? Visibility.Visible : Visibility.Collapsed;
+            var cost = IsCarbon ? Visibility.Collapsed : Visibility.Visible;
+            ColTrade.Visibility = carbon; ColCarbon.Visibility = carbon; ColCoverage.Visibility = carbon;
+            ColNet.Visibility = cost; ColProfit.Visibility = cost; ColOverhead.Visibility = cost;
+            OhBox.Visibility = cost; PrBox.Visibility = cost;
+        }
+
         public string Title
         {
             get => (string)GetValue(TitleProperty);
@@ -98,7 +134,7 @@ namespace ADLMRateGen.View.Suite
                 view.SortDescriptions.Clear();
                 switch (SortBox.SelectedIndex)
                 {
-                    case 1: view.SortDescriptions.Add(new SortDescription("TotalCost", ListSortDirection.Descending)); break;
+                    case 1: view.SortDescriptions.Add(new SortDescription(IsCarbon ? "CarbonTotal" : "TotalCost", ListSortDirection.Descending)); break;
                     case 2: view.SortDescriptions.Add(new SortDescription("Description", ListSortDirection.Ascending)); break;
                 }
             }

@@ -9,7 +9,9 @@
              d:DesignHeight="640">
     <!-- The shared trade screen (View/Suite/TradeScreen.xaml). This page only
          names the trade and the rows it shows. -->
-    <suite:TradeScreen Title="Carbon &amp; Others Computation"
+    <suite:TradeScreen Title="Carbon Computation"
+                       IsCarbon="True"
+                       Lede="Upfront embodied carbon (RICS A1-A5) of every priced rate, worked out from the same materials and quantities as its price. Open a rate to see each line's factor and its source; * marks a rate that uses an assumed mass."
                        Items="{Binding ItemsView}"
                        EmptyText="No carbon rates yet. They come down from ADLM once carbon factors are in the library. Building-services rates are under Mechanical, Electrical, Plumbing and Fire." />
 </UserControl>

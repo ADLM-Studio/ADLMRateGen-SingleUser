@@ -87,6 +87,10 @@
     <Content Include="Data\labourSpecs.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Carbon factors behind the carbon rates: every value carries its source. -->
+    <Content Include="Data\carbonFactors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Data\defaultMaterials.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

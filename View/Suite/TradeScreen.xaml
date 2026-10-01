@@ -27,7 +27,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel Margin="0,0,24,0">
                 <TextBlock Style="{StaticResource SxH1}" Text="{Binding Title, ElementName=Root}" />
-                <TextBlock Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
+                <TextBlock x:Name="LedeText" Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
                            Text="Using material and labour prices from the library, written to the Standard Method of Measurement." />
             </StackPanel>
             <Button Grid.Column="1" Style="{StaticResource SxBtnAdd}" VerticalAlignment="Top"
@@ -61,7 +61,7 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                    <Border x:Name="OhBox" Style="{StaticResource SxBox}" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource SxMuted}" Text="Overhead" VerticalAlignment="Center" />
                             <TextBox Style="{StaticResource SxBare}" Width="46" Margin="8,0,0,0"
@@ -71,7 +71,7 @@
                             <TextBlock Style="{StaticResource SxMuted}" Text="%" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
-                    <Border Grid.Column="1" Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                    <Border x:Name="PrBox" Grid.Column="1" Style="{StaticResource SxBox}" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource SxMuted}" Text="Profit" VerticalAlignment="Center" />
                             <TextBox Style="{StaticResource SxBare}" Width="46" Margin="8,0,0,0"
@@ -116,24 +116,51 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTextColumn x:Name="ColTrade" Header="TRADE" Binding="{Binding Trade}" Width="110"
+                                            Visibility="Collapsed" ElementStyle="{StaticResource SxCellUnit}" />
                         <DataGridTextColumn Header="UNIT" Binding="{Binding Unit}" Width="72"
                                             ElementStyle="{StaticResource SxCellUnit}" />
-                        <DataGridTextColumn Header="NET COST" Width="Auto" MinWidth="116"
+                        <DataGridTextColumn x:Name="ColNet" Header="NET COST" Width="Auto" MinWidth="116"
                                             HeaderStyle="{StaticResource SxTableHeaderRight}"
                                             Binding="{Binding NetCost, Converter={StaticResource MoneyConv}}"
                                             ElementStyle="{StaticResource SxCellNum}" />
-                        <DataGridTextColumn Header="PROFIT" Width="Auto" MinWidth="108"
+                        <DataGridTextColumn x:Name="ColProfit" Header="PROFIT" Width="Auto" MinWidth="108"
                                             HeaderStyle="{StaticResource SxTableHeaderRight}"
                                             Binding="{Binding ProfitValue, Converter={StaticResource MoneyConv}}"
                                             ElementStyle="{StaticResource SxCellNum}" />
-                        <DataGridTextColumn Header="OVERHEAD" Width="Auto" MinWidth="108"
+                        <DataGridTextColumn x:Name="ColOverhead" Header="OVERHEAD" Width="Auto" MinWidth="108"
                                             HeaderStyle="{StaticResource SxTableHeaderRight}"
                                             Binding="{Binding OverheadValue, Converter={StaticResource MoneyConv}}"
                                             ElementStyle="{StaticResource SxCellNum}" />
-                        <DataGridTextColumn Header="TOTAL COST" Width="Auto" MinWidth="124"
+                        <DataGridTextColumn x:Name="ColTotal" Header="TOTAL COST" Width="Auto" MinWidth="124"
                                             HeaderStyle="{StaticResource SxTableHeaderRight}"
                                             Binding="{Binding TotalCost, Converter={StaticResource MoneyConv}}"
                                             ElementStyle="{StaticResource SxCellNumB}" />
+                        <!-- Carbon mode: upfront carbon per unit, and how much of the build-up it accounts for -->
+                        <DataGridTextColumn x:Name="ColCarbon" Header="KGCO2E / UNIT" Width="Auto" MinWidth="124"
+                                            Visibility="Collapsed"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding CarbonTotal, StringFormat={}{0:N2}}"
+                                            ElementStyle="{StaticResource SxCellNumB}" />
+                        <DataGridTemplateColumn x:Name="ColCoverage" Header="COVERAGE" Width="96" Visibility="Collapsed"
+                                                HeaderStyle="{StaticResource SxTableHeaderRight}">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock ToolTip="Share of the build-up's cost whose carbon is accounted for. Labour and plant hire count as zero carbon; a line without a published factor is not counted.">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+                                                <Setter Property="Text" Value="{Binding Coverage, StringFormat={}{0:P0}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasAssumedMass}" Value="True">
+                                                        <Setter Property="Text" Value="{Binding Coverage, StringFormat={}{0:P0} *}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
                 </ScrollViewer>
