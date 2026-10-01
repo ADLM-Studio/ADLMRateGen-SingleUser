@@ -105,6 +105,8 @@
     <Resource Include="Resources\ADLMRate.ico" />
     <!-- The suite banner: RateGen's badge and artwork, from the design repo. -->
     <Resource Include="Resources\Suite\ic-rategen.png" />
+    <Resource Include="Resources\Suite\sp-rategen.jpg" />
+    <Resource Include="Resources\Suite\wm-rategen.png" />
     <Resource Include="Resources\Suite\bg-rategen.jpg" />
     <Resource Include="Resources\adlm_badge.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

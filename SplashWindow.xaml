@@ -1,11 +1,10 @@
 <Window x:Class="ADLMRateGen.SplashWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d"
-        Width="860"
-        Height="500"
+        xmlns:controls="clr-namespace:ADLMRateGen.Controls"
+        Title="ADLM RateGen"
+        Width="895"
+        Height="625"
         WindowStyle="None"
         ResizeMode="NoResize"
         AllowsTransparency="True"
@@ -13,119 +12,14 @@
         ShowInTaskbar="False"
         WindowStartupLocation="CenterScreen"
         Topmost="True">
-
-    <Border Background="#CC07111E"
-            CornerRadius="28"
-            Padding="20">
-        <Grid>
-            <Border CornerRadius="24"
-                    BorderThickness="1"
-                    BorderBrush="#334B7B"
-                    ClipToBounds="True">
-                <Grid>
-                    <Image Source="/Resources/Backdrop.png"
-                           Stretch="UniformToFill"
-                           Opacity="0.38" />
-                    <Rectangle Fill="#DD071325" />
-                    <Image Source="/Resources/panel_blueprint.png"
-                           Stretch="UniformToFill"
-                           Opacity="0.22" />
-                </Grid>
-            </Border>
-
-            <Border Margin="96,74,96,86"
-                    CornerRadius="20"
-                    BorderThickness="2"
-                    BorderBrush="#2C74FF"
-                    Background="#D4091424">
-                <Grid Margin="34">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center">
-                        <Image Source="/Resources/adlm_studio_logo_small.png"
-                               Height="18"
-                               Margin="0,0,10,0" />
-                        <TextBlock Text="ADLM Studio"
-                                   Foreground="#C5D8FF"
-                                   FontFamily="Poppins"
-                                   FontSize="13"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="1"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center">
-                        <Image Source="/Resources/adlm_rate_generator_logo.png"
-                               Width="260"
-                               Stretch="Uniform"
-                               Margin="0,0,0,24" />
-                        <TextBlock Text="Loading your workspace"
-                                   HorizontalAlignment="Center"
-                                   Foreground="White"
-                                   FontFamily="Poppins"
-                                   FontSize="28"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="Preparing rates, libraries, and your last signed-in session."
-                                   HorizontalAlignment="Center"
-                                   Margin="0,10,0,0"
-                                   Foreground="#C6D1E7"
-                                   FontFamily="Poppins"
-                                   FontSize="14" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="2"
-                                Margin="0,10,0,0">
-                        <ProgressBar Height="8"
-                                     IsIndeterminate="True"
-                                     Foreground="#2C74FF"
-                                     Background="#17304F"
-                                     BorderThickness="0" />
-                        <TextBlock Text="ADLM Rate Generator is starting..."
-                                   Margin="0,14,0,0"
-                                   HorizontalAlignment="Center"
-                                   Foreground="#AFC3EB"
-                                   FontFamily="Poppins"
-                                   FontSize="12" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <Border Width="72"
-                    Height="72"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Bottom"
-                    Margin="42,0,0,32"
-                    Background="#E80F2036"
-                    CornerRadius="20"
-                    BorderBrush="#1C4C8D"
-                    BorderThickness="1">
-                <Image Source="/Resources/adlm_badge.png"
-                       Width="34"
-                       Height="34"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-            </Border>
-
-            <Border Width="64"
-                    Height="64"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,34,42,0"
-                    Background="#E80F2036"
-                    CornerRadius="18"
-                    BorderBrush="#1C4C8D"
-                    BorderThickness="1">
-                <Image Source="/Resources/adlm_badge.png"
-                       Width="30"
-                       Height="30"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-            </Border>
-        </Grid>
-    </Border>
+    <!-- Richard's splash (815 x 545 frame), with room round it for its shadow.
+         The code-behind scales the window down on small screens; the card
+         inside scales as one piece. -->
+    <Grid Margin="40">
+        <controls:SplashCard x:Name="Card">
+            <controls:SplashCard.Effect>
+                <DropShadowEffect BlurRadius="60" ShadowDepth="20" Direction="270" Opacity="0.6" Color="Black" />
+            </controls:SplashCard.Effect>
+        </controls:SplashCard>
+    </Grid>
 </Window>

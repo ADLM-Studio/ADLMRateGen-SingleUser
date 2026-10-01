@@ -93,11 +93,14 @@ namespace ADLMRateGen
                 Helpers.AppEnvironment.RemoveRetiredHostOverrides();
 
                 // 3) Migrations + data initialization
+                // The splash names each step as it starts (Richard's loading system).
+                splash.Say("Preparing your library…");
                 DataMigrator.EnsureMigrated();
 
                 MaterialLibraryService.Initialize(new MaterialJsonDataSource(AppPaths.MaterialLibraryFile));
                 LabourLibraryService.Initialize(new LabourJsonDataSource(AppPaths.LabourLibraryFile));
 
+                splash.Say("Loading the rate build-ups…");
                 ComputeCatalogStore.ReloadFromDisk();
 
 
@@ -154,6 +157,8 @@ namespace ADLMRateGen
                 ApplyTheme(ConfigManager.LoadConfig()?.IsDarkTheme == true, persist: false);
 
                 // 6) Show main window
+                splash.Say("Opening RateGen…");
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
                 var wnd = new MainWindow();
                 MainWindow = wnd;
                 _mainWindow = wnd;
