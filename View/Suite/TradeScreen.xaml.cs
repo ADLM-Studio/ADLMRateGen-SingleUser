@@ -24,6 +24,16 @@ namespace ADLMRateGen.View.Suite
             DependencyProperty.Register(nameof(Items), typeof(IEnumerable), typeof(TradeScreen),
                 new PropertyMetadata(null, (d, e) => ((TradeScreen)d).OnItemsChanged()));
 
+        /// <summary>What an empty trade says, when the default is not the truth for it.</summary>
+        public static readonly DependencyProperty EmptyTextProperty =
+            DependencyProperty.Register(nameof(EmptyText), typeof(string), typeof(TradeScreen), new PropertyMetadata(null));
+
+        public string? EmptyText
+        {
+            get => (string?)GetValue(EmptyTextProperty);
+            set => SetValue(EmptyTextProperty, value);
+        }
+
         public string Title
         {
             get => (string)GetValue(TitleProperty);
@@ -101,7 +111,7 @@ namespace ADLMRateGen.View.Suite
             None.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
             if (!empty) return;
             None.Text = string.IsNullOrWhiteSpace(Find.Text)
-                ? "Nothing in this trade yet. Check the library for updates from the top bar and the rates will come down."
+                ? EmptyText ?? "Nothing in this trade yet. Check the library for updates from the top bar and the rates will come down."
                 : "No rate in this trade matches that.";
         }
 

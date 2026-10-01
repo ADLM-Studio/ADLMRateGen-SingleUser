@@ -87,6 +87,7 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
         public CarbonOthersViewModel(MaterialLibraryViewModel matLib, LabourLibraryViewModel labourLib)
         {
             _helper = new GetItemsFromDB(matLib, labourLib);
+            _matLibForRouting = matLib;
 
             matLib.LibraryChanged += OnLibraryChanged;
             labourLib.LibraryChanged += OnLibraryChanged;
@@ -296,6 +297,11 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
                 if (!string.Equals(key, SectionKey, StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                // Building-services rates published into this section belong to
+                // Mechanical, Electrical, Plumbing or Fire, and are listed there.
+                if (ServiceRouting.DisciplineOf(def, CategoryOf) != null)
+                    continue;
+
                 try
                 {
                     var computed = _computeEngine.Compute(def);
@@ -431,6 +437,10 @@ namespace ADLMRateGen.ViewModel.CarbonOthers
         }
 
         private double GetMaterialPrice(string name) => _helper.GetMaterialPrice(name);
+
+        private readonly MaterialLibraryViewModel? _matLibForRouting;
+        private string? CategoryOf(string name) =>
+            _matLibForRouting?.MaterialLibrary.FirstOrDefault(m => m.MaterialName == name)?.MaterialCategory;
         private double GetLabourRate(string name) => _helper.GetLabourRate(name);
     }
 }

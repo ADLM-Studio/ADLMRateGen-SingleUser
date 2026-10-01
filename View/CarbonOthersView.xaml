@@ -10,5 +10,6 @@
     <!-- The shared trade screen (View/Suite/TradeScreen.xaml). This page only
          names the trade and the rows it shows. -->
     <suite:TradeScreen Title="Carbon &amp; Others Computation"
-                       Items="{Binding ItemsView}" />
+                       Items="{Binding ItemsView}"
+                       EmptyText="No carbon rates yet. They come down from ADLM once carbon factors are in the library. Building-services rates are under Mechanical, Electrical, Plumbing and Fire." />
 </UserControl>
