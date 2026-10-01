@@ -394,12 +394,17 @@
                                                   VerticalAlignment="Center"
                                                   Content="{TemplateBinding SelectionBoxItem}"
                                                   ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
-                                <TextBlock Text="⌄"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Right"
-                                           Margin="0,0,12,0"
-                                           Foreground="{TemplateBinding Foreground}" />
+                                <!-- A drawn chevron: the old "⌄" glyph is not in Segoe MDL2 Assets
+                                     and rendered as an empty box. -->
+                                <Path Data="M0,0 L4.5,4.5 L9,0"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Right"
+                                      Margin="0,0,11,0"
+                                      IsHitTestVisible="False"
+                                      Stroke="{TemplateBinding Foreground}"
+                                      StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" />
                                 <ToggleButton x:Name="DropDownToggle"
                                               Focusable="False"
                                               IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"

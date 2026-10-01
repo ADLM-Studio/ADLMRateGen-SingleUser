@@ -1,211 +1,94 @@
-<UserControl x:Class="ADLMRateGen.View.MaterialPriceView"
+﻿<UserControl x:Class="ADLMRateGen.View.MaterialPriceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:ADLMRateGen.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             Width="660"
-             Height="680">
-
+             Tag="SxSheet"
+             d:DesignWidth="620" d:DesignHeight="640">
+    <!-- Add or edit a material price, as a suite sheet (Richard's design,
+         30 Sep 2026): the same sheet, fields and footer as Rate Composition and
+         the custom-rate builder. -->
     <UserControl.Resources>
-        <conv:BoolToStringConverter  x:Key="BoolToStringConverter" />
-        <conv:BoolToCommandConverter x:Key="BoolToCommandConverter" />
-
-        <!-- Figma input field style: bg:#EBEDF0, border:1px #DFE2E6, rounded:12, padding:16,24 -->
-        <Style x:Key="FigmaInput" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource BgInput}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushLight}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="Padding" Value="20,14" />
-            <Setter Property="CaretBrush" Value="{DynamicResource DarkButtonBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12"
-                                SnapsToDevicePixels="True">
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                          Margin="{TemplateBinding Padding}"
-                                          VerticalAlignment="Center" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="{DynamicResource ButCol}" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- Figma read-only input (for Name when editing) -->
-        <Style x:Key="FigmaInputReadOnly" TargetType="TextBox" BasedOn="{StaticResource FigmaInput}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                    <Setter Property="IsReadOnly" Value="True" />
-                    <Setter Property="Opacity" Value="0.7" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+        <conv:BoolToStringConverter x:Key="BoolToStringConverter" />
     </UserControl.Resources>
 
-    <!-- Figma: white bg, border 1px #DFE2E6, rounded:24, px:56 py:44 -->
-    <Border Background="{DynamicResource BackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrushLight}"
-            BorderThickness="1"
-            CornerRadius="24"
-            Padding="56,44"
-            SnapsToDevicePixels="True">
+    <Border Style="{StaticResource SxSheet}" Width="620" MaxHeight="760">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <StackPanel>
-
-            <!-- Title: Mont Bold 31.25px, #040E22, tracking:-2.19px -->
-            <TextBlock Text="{Binding IsEditing,
-                       Converter={StaticResource BoolToStringConverter},
-                       ConverterParameter='Update Library|Add New Material'}"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="28"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource Blue900Brush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,4" />
-
-            <!-- Subtitle: Mont SemiBold 12.8px, #354764 -->
-            <TextBlock Text="Can't find your desired material in our library?"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,32" />
-
-            <!-- ── Name of Material ── -->
-            <TextBlock Text="Name of Material"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       Margin="0,0,0,8" />
-            <TextBox Text="{Binding MaterialName}"
-                     Style="{StaticResource FigmaInputReadOnly}" />
-
-            <!-- ── Unit + Price row ── -->
-            <Grid Margin="0,18,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="18" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="8" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <!-- Unit label -->
-                <TextBlock Grid.Row="0" Grid.Column="0"
-                           Text="Unit"
-                           FontFamily="{DynamicResource AppFont}"
-                           FontSize="12.8"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource HintGrey}" />
-
-                <!-- Price label with currency hint -->
-                <StackPanel Grid.Row="0" Grid.Column="2"
-                            Orientation="Horizontal">
-                    <TextBlock Text="Price"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="12.8"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource HintGrey}" />
-                    <TextBlock Text="{Binding CurrencyLabel, StringFormat=' ({0})'}"
-                               FontSize="12"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource OrangeAccentBrush}"
-                               VerticalAlignment="Center"
-                               Margin="2,0,0,0" />
+            <DockPanel Margin="24,24,24,16">
+                <Button DockPanel.Dock="Right" Style="{StaticResource SxSheetBtn}" Content="×" VerticalAlignment="Top"
+                        Click="Close_Click" ToolTip="Close without saving" />
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SxH2}"
+                               Text="{Binding IsEditing, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Edit material|Add material'}" />
+                    <TextBlock Style="{StaticResource SxLede}" Foreground="{DynamicResource SxInk3}"
+                               Text="{Binding IsEditing, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Change it here and every rate built from it is repriced.|Not in the ADLM library? Add it; it stays on this PC.'}" />
                 </StackPanel>
+            </DockPanel>
 
-                <!-- Unit input -->
-                <TextBox Grid.Row="2" Grid.Column="0"
-                         Text="{Binding MaterialUnit}"
-                         Style="{StaticResource FigmaInputReadOnly}" />
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,0,24,24">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Name of material" />
+                    <TextBox Style="{StaticResource SxField}" Margin="0,0,0,16"
+                             Text="{Binding MaterialName}" />
 
-                <!-- Price input -->
-                <TextBox Grid.Row="2" Grid.Column="2"
-                         Text="{Binding MaterialPrice, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource FigmaInput}" />
-            </Grid>
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SxLabel}" Text="Unit" />
+                            <TextBox Style="{StaticResource SxField}" Tag="e.g. m2, Bag, day"
+                                     Text="{Binding MaterialUnit}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource SxLabel}">
+                                <Run Text="Price" /><Run Text="{Binding CurrencyLabel, StringFormat=' ({0})', Mode=OneWay}"
+                                                         Foreground="{DynamicResource SxInk3}" FontWeight="Normal" />
+                            </TextBlock>
+                            <TextBox Style="{StaticResource SxField}" TextAlignment="Right"
+                                     Text="{Binding MaterialPrice, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </Grid>
 
-            <!-- ── Category ── -->
-            <TextBlock Text="Category"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       Margin="0,18,0,8" />
-            <TextBox Text="{Binding NewMaterialCategory}"
-                     Style="{StaticResource FigmaInputReadOnly}" />
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Category" />
+                    <TextBox Style="{StaticResource SxField}" Tag="e.g. Cement and aggregates"
+                             Text="{Binding NewMaterialCategory}" />
+                </StackPanel>
+            </ScrollViewer>
 
-            <!-- ── Save / Update Button: bg:#091E39, rounded:13, h:60, Raleway Medium 18.78px ── -->
-            <Button Margin="0,32,0,0"
-                    HorizontalAlignment="Stretch"
-                    Cursor="Hand"
-                    Content="{Binding IsEditing,
-                              Converter={StaticResource BoolToStringConverter},
-                              ConverterParameter='Update Library|Save to Database'}">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{DynamicResource DarkButtonBrush}" />
-                        <Setter Property="BorderThickness" Value="0" />
-                        <Setter Property="Command" Value="{Binding SaveMaterialCommand}" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="BtnBorder"
-                                            Background="{TemplateBinding Background}"
-                                            CornerRadius="13"
-                                            Height="58"
-                                            Padding="32,16">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center" />
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="BtnBorder"
-                                                    Property="Background" Value="{DynamicResource DarkButtonHoverBrush}" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                <Setter Property="Command"
-                                        Value="{Binding UpdateMaterialCommand}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-                <Button.ContentTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   FontFamily="{DynamicResource AppFont}"
-                                   FontSize="18"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource OnDarkButtonText}"
-                                   TextAlignment="Center" />
-                    </DataTemplate>
-                </Button.ContentTemplate>
-            </Button>
-
-        </StackPanel>
+            <Border Grid.Row="2" Style="{StaticResource SxSheetFoot}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource SxBtnGhost}" Content="Cancel" Margin="0,0,10,0" Click="Close_Click" />
+                    <Button Grid.Column="1"
+                            Content="{Binding IsEditing, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Update the library|Save to the library'}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SxBtn}">
+                                <Setter Property="Command" Value="{Binding SaveMaterialCommand}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                        <Setter Property="Command" Value="{Binding UpdateMaterialCommand}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
     </Border>
 </UserControl>

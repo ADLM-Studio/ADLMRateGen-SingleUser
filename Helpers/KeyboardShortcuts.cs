@@ -231,6 +231,14 @@ namespace ADLMRateGen.Helpers
             if (_sheet != null) { _sheet.Activate(); return; }
             Window owner = host != null ? Window.GetWindow(host) : null;
 
+            // A product that carries the suite kit (RateGen, 30 Sep 2026) gets the
+            // sheet in the suite's own chrome; anything else keeps the plain window.
+            if (Application.Current != null && Application.Current.TryFindResource("SxSheet") is Style)
+            {
+                ShowSuiteSheet(owner);
+                return;
+            }
+
             Brush bg = FindBrush(host, "CardBg", "CardBackground", "SurfaceBrush", "ContentBg")
                        ?? (owner != null ? owner.Background : null) ?? Brushes.White;
             var sbg = bg as SolidColorBrush;
@@ -297,6 +305,140 @@ namespace ADLMRateGen.Helpers
                     ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen
             };
             if (owner != null && owner.IsVisible) sheet.Owner = owner;
+            sheet.PreviewKeyDown += (s, e) =>
+            {
+                Key k = e.Key == Key.System ? e.SystemKey : e.Key;
+                if (k == Key.Escape || k == Key.F1 || (k == Key.OemQuestion && Keyboard.Modifiers == ModifierKeys.Control))
+                {
+                    sheet.Close();
+                    e.Handled = true;
+                }
+            };
+            sheet.Closed += (s, e) =>
+            {
+                _sheet = null;
+                if (owner != null && owner.IsVisible) owner.Activate();
+            };
+            _sheet = sheet;
+            sheet.Show();
+        }
+
+        /// <summary>
+        /// The sheet in the suite's chrome: borderless, over the suite veil, one
+        /// card with the key chips drawn like the top bar's "Ctrl + F". Click the
+        /// veil, press Esc or F1, or the x, to close it.
+        /// </summary>
+        private void ShowSuiteSheet(Window owner)
+        {
+            var app = Application.Current;
+            T Res<T>(string key) where T : class => app.TryFindResource(key) as T;
+            TextBlock Text(string text, string style, double size = 0)
+            {
+                var t = new TextBlock { Text = text, Style = Res<Style>(style) };
+                if (size > 0) t.FontSize = size;
+                return t;
+            }
+
+            var body = new StackPanel { Margin = new Thickness(24, 0, 24, 24) };
+            foreach (var group in SheetGroups())
+            {
+                var head = Text(group.Key.ToUpperInvariant(), "SxRailHead");
+                head.Margin = new Thickness(0, 14, 0, 6);
+                body.Children.Add(head);
+                foreach (var s in group.Value)
+                {
+                    var row = new Border { Padding = new Thickness(0, 7, 0, 7), BorderThickness = new Thickness(0, 0, 0, 1) };
+                    row.SetResourceReference(Border.BorderBrushProperty, "SxLine");
+                    var g = new Grid();
+                    g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 220 });
+                    g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    var label = Text(s.Description, "SxText", 13);
+                    label.VerticalAlignment = VerticalAlignment.Center;
+                    label.Margin = new Thickness(0, 0, 24, 0);
+                    g.Children.Add(label);
+
+                    var keys = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+                    var alternatives = s.Gesture.Split(new[] { " or " }, StringSplitOptions.None);
+                    for (int i = 0; i < alternatives.Length; i++)
+                    {
+                        if (i > 0) { var or = Text("or", "SxMuted", 11.5); or.Margin = new Thickness(8, 0, 8, 0); or.VerticalAlignment = VerticalAlignment.Center; keys.Children.Add(or); }
+                        var chip = new Border { CornerRadius = new CornerRadius(6), Padding = new Thickness(7, 2, 7, 2), BorderThickness = new Thickness(1) };
+                        chip.SetResourceReference(Border.BackgroundProperty, "SxBgAlt");
+                        chip.SetResourceReference(Border.BorderBrushProperty, "SxLine");
+                        var kt = Text(alternatives[i].Trim().Replace("+", " + "), "SxText", 11);
+                        kt.SetResourceReference(TextBlock.ForegroundProperty, "SxInk2");
+                        chip.Child = kt;
+                        keys.Children.Add(chip);
+                    }
+                    Grid.SetColumn(keys, 1);
+                    g.Children.Add(keys);
+                    row.Child = g;
+                    body.Children.Add(row);
+                }
+            }
+
+            // Head: title, product, close
+            var close = new Button { Content = "×", Style = Res<Style>("SxSheetBtn"), ToolTip = "Close (Esc)", VerticalAlignment = VerticalAlignment.Top };
+            var titles = new StackPanel();
+            titles.Children.Add(Text("Keyboard shortcuts", "SxH2"));
+            var sub = Text(_productName + "  ·  F1 or Esc closes this", "SxLede");
+            sub.SetResourceReference(TextBlock.ForegroundProperty, "SxInk3");
+            titles.Children.Add(sub);
+            var headBar = new DockPanel { Margin = new Thickness(24, 24, 24, 8) };
+            DockPanel.SetDock(close, Dock.Right);
+            headBar.Children.Add(close);
+            headBar.Children.Add(titles);
+
+            var layout = new Grid();
+            layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            layout.Children.Add(headBar);
+            var scroll = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            Grid.SetRow(scroll, 1);
+            layout.Children.Add(scroll);
+
+            var card = new Border
+            {
+                Style = Res<Style>("SxSheet"),
+                Width = 520,
+                Margin = new Thickness(24),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = layout
+            };
+            var veil = new Grid { Children = { card } };
+            veil.SetResourceReference(Panel.BackgroundProperty, "SxVeil");
+
+            var sheet = new Window
+            {
+                Title = _productName + " - Keyboard shortcuts",
+                Content = veil,
+                WindowStyle = WindowStyle.None,
+                AllowsTransparency = true,
+                Background = Brushes.Transparent,
+                ResizeMode = ResizeMode.NoResize,
+                ShowInTaskbar = false,
+            };
+            if (owner != null && owner.IsVisible)
+            {
+                sheet.Owner = owner;
+                if (owner.WindowState == WindowState.Maximized) sheet.WindowState = WindowState.Maximized;
+                else
+                {
+                    sheet.WindowStartupLocation = WindowStartupLocation.Manual;
+                    sheet.Left = owner.Left; sheet.Top = owner.Top;
+                    sheet.Width = owner.ActualWidth; sheet.Height = owner.ActualHeight;
+                }
+            }
+            else
+            {
+                sheet.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                sheet.Width = 600; sheet.Height = SystemParameters.WorkArea.Height * 0.85;
+            }
+            card.MaxHeight = Math.Max(300, (sheet.Height > 0 ? sheet.Height : SystemParameters.WorkArea.Height) - 48);
+
+            close.Click += (s, e) => sheet.Close();
+            veil.MouseLeftButtonDown += (s, e) => { if (e.OriginalSource == veil) sheet.Close(); };
             sheet.PreviewKeyDown += (s, e) =>
             {
                 Key k = e.Key == Key.System ? e.SystemKey : e.Key;

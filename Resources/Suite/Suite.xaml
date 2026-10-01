@@ -510,6 +510,41 @@
         </Setter>
     </Style>
 
+    <!-- ─── Segmented control (Material | Labour): a RadioButton per segment,
+         the chosen one lifted onto bg with the action colour. ─── -->
+    <Style x:Key="SxSegment" TargetType="RadioButton">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk2}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SxBg}" />
+                            <Setter Property="Foreground" Value="{DynamicResource SxAction}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="Bd" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.10" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ─── The one table ───
          Uppercase 11px headers in ink-3 over a line-2 rule, hairline rows,
          bg-inset on hover, no grid lines, no zebra. -->

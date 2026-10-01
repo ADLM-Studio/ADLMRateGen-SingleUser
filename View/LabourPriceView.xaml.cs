@@ -24,5 +24,11 @@ namespace ADLMRateGen.View
         {
             InitializeComponent();
         }
+
+        /// <summary>Close or Cancel: nothing is saved.</summary>
+        private void Close_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (System.Windows.Application.Current?.MainWindow is MainWindow mw) mw.PopupHost.Hide();
+        }
     }
 }

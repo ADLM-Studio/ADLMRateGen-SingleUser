@@ -3,92 +3,71 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:fa="clr-namespace:FontAwesome.Sharp;assembly=FontAwesome.Sharp"
              mc:Ignorable="d"
              d:DesignHeight="450"
              d:DesignWidth="800">
 
-    <Grid Margin="12 6 12 10">
-
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="60" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <!-- price notice, collapses to nothing when there is none -->
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!--──────── TOP TAB BAR ─────────-->
-        <Grid Grid.Row="0"
-              Height="60"
-              VerticalAlignment="Top">
+        <!--──────── HEAD (Richard's design, 30 Sep 2026) ─────────
+             Title and what the library is, the Material | Labour switch drawn as
+             the suite's segmented control, and the one add action, so the library
+             reads like the trade screens it feeds. -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="240" />
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-
-            <!-- Pricing location is set on the ADLM website, on your profile, and
-                 arrives here on the next sign-in. The picker used to sit here too,
-                 which meant two places could disagree about where you price from.
-                 The note stays so the screen still says which zone your prices come
-                 from — removing the control should not remove the answer. -->
-            <TextBlock Grid.Column="1"
-                       Text="{Binding LocationNote}"
-                       Margin="12,0,12,0"
-                       VerticalAlignment="Center"
-                       TextWrapping="Wrap"
-                       FontSize="11"
-                       Opacity="0.75"
-                       ToolTip="Set your pricing location on your ADLM profile on the website. It applies here on your next sign-in."
-                       Foreground="{DynamicResource Blue900Brush}" />
-
-            <Border CornerRadius="16"
-                    SnapsToDevicePixels="True"
-                    Background="{DynamicResource MainBg}">
-
-                <Grid>
-
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition />
-
-                    </Grid.ColumnDefinitions>
-                    <!-- Material tab -->
-                    <RadioButton Grid.Column="0"
-                                 IsChecked="{Binding IsMaterialTab, Mode=TwoWay}"
-                                 Style="{StaticResource FlatTabButton}">
-                        Material
-                    </RadioButton>
-
-                    <!-- Labour tab -->
-                    <RadioButton Grid.Column="1"
-                                 IsChecked="{Binding IsLabourTab, Mode=TwoWay}"
-                                 Style="{StaticResource FlatTabButton}">
-                        Labour
-                    </RadioButton>
-                </Grid>
-            </Border>
-
-
-
-            <!-- The library Undo now lives in the header, as its own icon
-                 (ClockRotateLeft), so it is reachable without the toolbar and
-                 does not share the Undo arrow with Reset all rate edits.
-                 See Controls/Header.xaml. -->
-
-            <!-- Add button -->
-
-
-            <Button Grid.Column="2"
-                    Command="{Binding AddCommand}"
-                    Style="{DynamicResource PrimaryButton}"
-                    HorizontalAlignment="Right"
-                    Foreground="{DynamicResource LightGrayBrush}"
-                    Margin="0,0,12,0">
-                <TextBlock Text="{Binding AddButtonText}"
-                           Style="{StaticResource BtnText}" />
+            <StackPanel Margin="0,0,24,0">
+                <TextBlock Style="{StaticResource SxH1}" Text="Library" />
+                <TextBlock Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
+                           Text="The material and labour prices every rate is built from. Fed from ADLM; your own prices stay on this PC." />
+                <!-- Pricing location is set on the ADLM website, on your profile, and
+                     arrives here on the next sign-in. The note says which zone the
+                     prices come from, so the answer is on the screen. -->
+                <DockPanel Margin="0,8,0,0">
+                    <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Profile}"
+                                    Foreground="{DynamicResource SxInk3}" Margin="0,0,6,0" />
+                    <TextBlock Style="{StaticResource SxMuted}" FontSize="12" Text="{Binding LocationNote}"
+                               ToolTip="Set your pricing location on your ADLM profile on the website. It applies here on your next sign-in." />
+                </DockPanel>
+            </StackPanel>
+            <Button Grid.Column="1" Style="{StaticResource SxBtnAdd}" VerticalAlignment="Top"
+                    Command="{Binding AddCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding AddButtonText}" VerticalAlignment="Center" />
+                </StackPanel>
             </Button>
         </Grid>
+
+        <!-- Material | Labour -->
+        <Border Grid.Row="1" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="4"
+                CornerRadius="12" BorderThickness="1"
+                Background="{DynamicResource SxBgInset}" BorderBrush="{DynamicResource SxLine}">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Style="{StaticResource SxSegment}"
+                             IsChecked="{Binding IsMaterialTab, Mode=TwoWay}">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Block}" Margin="0,0,8,0" />
+                        <TextBlock Text="Material" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton Style="{StaticResource SxSegment}"
+                             IsChecked="{Binding IsLabourTab, Mode=TwoWay}">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Profile}" Margin="0,0,8,0" />
+                        <TextBlock Text="Labour" VerticalAlignment="Center" />
+                    </StackPanel>
+                </RadioButton>
+            </StackPanel>
+        </Border>
 
         <!--──────── YOUR PRICES vs NEWLY PUBLISHED ONES ─────────
 
@@ -98,11 +77,11 @@
 
              Per row, because "all or nothing" was the wrong question — someone may
              well want the new cement price and not the new diesel one. -->
-        <Border Grid.Row="1"
-                Margin="0,18,0,0"
-                CornerRadius="12"
-                Background="{DynamicResource MainBg}"
-                BorderBrush="{DynamicResource BorderBrushLight}"
+        <Border Grid.Row="2"
+                Margin="0,0,0,16"
+                CornerRadius="18"
+                Background="{DynamicResource SxBg}"
+                BorderBrush="{DynamicResource SxAction}"
                 BorderThickness="1"
                 SnapsToDevicePixels="True"
                 Visibility="{Binding IsPriceConflictPanelVisible, Converter={StaticResource BoolVis}}">
@@ -128,47 +107,37 @@
                             Height="30"
                             CornerRadius="10"
                             VerticalAlignment="Top"
-                            Background="{DynamicResource LightGrayBrush}">
-                        <fa:IconBlock Icon="Tags"
-                                      Width="13"
-                                      Height="13"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      Foreground="{DynamicResource Blue900Brush}" />
+                            Background="{DynamicResource SxBgAlt}">
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Refresh}" Foreground="{DynamicResource SxAction}" HorizontalAlignment="Center" />
                     </Border>
 
                     <StackPanel Grid.Column="1"
                                 Margin="12,0,12,0"
                                 VerticalAlignment="Center">
                         <TextBlock Text="{Binding PriceConflictSummary}"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontWeight="SemiBold"
                                    FontSize="13"
                                    TextWrapping="Wrap"
-                                   Foreground="{DynamicResource Blue900Brush}" />
+                                   Foreground="{DynamicResource SxInk}" />
                         <TextBlock Text="{Binding PriceConflictDetail}"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontSize="11"
                                    Margin="0,2,0,0"
                                    Opacity="0.75"
                                    TextWrapping="Wrap"
-                                   Foreground="{DynamicResource CellTextBrush}" />
+                                   Foreground="{DynamicResource SxInk}" />
                     </StackPanel>
 
                     <!-- Hiding is not deciding: the review comes back from the bell. -->
                     <Button Grid.Column="2"
                             Command="{Binding HidePriceConflictsCommand}"
-                            Background="Transparent"
-                            BorderThickness="0"
+                            Style="{StaticResource SxSheetBtn}"
                             Width="28"
                             Height="28"
-                            Cursor="Hand"
                             VerticalAlignment="Top"
                             ToolTip="Hide this for now. Reopen it from the notifications bell.">
-                        <fa:IconBlock Icon="Times"
-                                      Width="12"
-                                      Height="12"
-                                      Foreground="{DynamicResource CellTextBrush}" />
+                        <TextBlock Text="×" FontSize="16" Foreground="{DynamicResource SxInk2}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Button>
                 </Grid>
 
@@ -177,7 +146,7 @@
                      bar, which left every heading sitting to the right of its own
                      column. Give the padding back only while the bar is actually up. -->
                 <Border Grid.Row="1"
-                        Background="{DynamicResource LightGrayBrush}">
+                        Background="{DynamicResource SxBgAlt}">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Padding"
@@ -209,42 +178,42 @@
 
                         <TextBlock Grid.Column="1"
                                    Text="Item"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
-                                   Foreground="{DynamicResource HeaderTextBrush}" />
+                                   Foreground="{DynamicResource SxInk3}" />
                         <TextBlock Grid.Column="2"
                                    Text="Unit"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
-                                   Foreground="{DynamicResource HeaderTextBrush}" />
+                                   Foreground="{DynamicResource SxInk3}" />
                         <TextBlock Grid.Column="3"
                                    Text="Your price"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource HeaderTextBrush}" />
+                                   Foreground="{DynamicResource SxInk3}" />
                         <TextBlock Grid.Column="4"
                                    Text="Published"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource HeaderTextBrush}" />
+                                   Foreground="{DynamicResource SxInk3}" />
                         <TextBlock Grid.Column="5"
                                    Text="Change"
-                                   FontFamily="{DynamicResource PoppinsFont}"
+                                   FontFamily="{StaticResource SxFont}"
                                    FontSize="11"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource HeaderTextBrush}" />
+                                   Foreground="{DynamicResource SxInk3}" />
                     </Grid>
                 </Border>
 
@@ -258,7 +227,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border Padding="16,8"
-                                        BorderBrush="{DynamicResource BorderBrushLight}"
+                                        BorderBrush="{DynamicResource SxLine}"
                                         BorderThickness="0,0,0,1">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -278,53 +247,53 @@
                                                     Margin="0,0,10,0"
                                                     VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}"
-                                                       FontFamily="{DynamicResource PoppinsFont}"
+                                                       FontFamily="{StaticResource SxFont}"
                                                        FontSize="12"
                                                        TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource CellTextBrush}" />
+                                                       Foreground="{DynamicResource SxInk}" />
                                             <TextBlock Text="{Binding Kind}"
-                                                       FontFamily="{DynamicResource PoppinsFont}"
+                                                       FontFamily="{StaticResource SxFont}"
                                                        FontSize="10"
                                                        Opacity="0.6"
-                                                       Foreground="{DynamicResource CellTextBrush}" />
+                                                       Foreground="{DynamicResource SxInk}" />
                                         </StackPanel>
 
                                         <TextBlock Grid.Column="2"
                                                    Text="{Binding Unit}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
+                                                   FontFamily="{StaticResource SxFont}"
                                                    FontSize="11.5"
                                                    VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource CellTextBrush}" />
+                                                   Foreground="{DynamicResource SxInk}" />
 
                                         <!-- Yours is in force today, so it reads as the firm value. -->
                                         <TextBlock Grid.Column="3"
                                                    Text="{Binding YourPrice, Converter={StaticResource MoneyConv}, StringFormat=N0}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
+                                                   FontFamily="{StaticResource SxFont}"
                                                    FontSize="11.5"
                                                    FontWeight="SemiBold"
                                                    VerticalAlignment="Center"
                                                    HorizontalAlignment="Right"
-                                                   Foreground="{DynamicResource CellTextBrush}" />
+                                                   Foreground="{DynamicResource SxInk}" />
 
                                         <TextBlock Grid.Column="4"
                                                    Text="{Binding PublishedPrice, Converter={StaticResource MoneyConv}, StringFormat=N0}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
+                                                   FontFamily="{StaticResource SxFont}"
                                                    FontSize="11.5"
                                                    VerticalAlignment="Center"
                                                    HorizontalAlignment="Right"
                                                    Opacity="0.85"
-                                                   Foreground="{DynamicResource CellTextBrush}" />
+                                                   Foreground="{DynamicResource SxInk}" />
 
                                         <TextBlock Grid.Column="5"
                                                    Text="{Binding ChangeText}"
-                                                   FontFamily="{DynamicResource PoppinsFont}"
+                                                   FontFamily="{StaticResource SxFont}"
                                                    FontSize="11.5"
                                                    VerticalAlignment="Center"
                                                    HorizontalAlignment="Right">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Foreground"
-                                                            Value="{DynamicResource CellTextBrush}" />
+                                                            Value="{DynamicResource SxInk}" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsIncrease}"
                                                                      Value="True">
@@ -359,42 +328,36 @@
                     <TextBlock Grid.Column="0"
                                Text="{Binding SelectionSummary}"
                                VerticalAlignment="Center"
-                               FontFamily="{DynamicResource PoppinsFont}"
+                               FontFamily="{StaticResource SxFont}"
                                FontSize="11.5"
                                Opacity="0.75"
-                               Foreground="{DynamicResource CellTextBrush}" />
+                               Foreground="{DynamicResource SxInk}" />
 
                     <Button Grid.Column="1"
                             Command="{Binding KeepMyPricesCommand}"
                             IsEnabled="{Binding HasSelectedConflicts}"
-                            Style="{DynamicResource SecondaryButton}"
+                            Style="{StaticResource SxBtnGhostSm}"
                             Margin="0,0,10,0"
-                            Padding="14,6"
                             VerticalAlignment="Center"
                             ToolTip="Keep your own figures on the ticked rows, and stop asking about them.">
-                        <TextBlock Text="Keep mine"
-                                   Style="{DynamicResource BtnTextSecondary}" />
+                        <TextBlock Text="Keep mine" />
                     </Button>
 
                     <Button Grid.Column="2"
                             Command="{Binding UseServerPricesCommand}"
                             IsEnabled="{Binding HasSelectedConflicts}"
-                            Style="{DynamicResource PrimaryButton}"
-                            Padding="14,6"
-                            Cursor="Hand"
+                            Style="{StaticResource SxBtnSm}"
                             VerticalAlignment="Center"
                             ToolTip="Take the published price on the ticked rows. Archived first, so it can be undone.">
-                        <TextBlock Text="Use published"
-                                   Style="{DynamicResource BtnText}" />
+                        <TextBlock Text="Use published" />
                     </Button>
                 </Grid>
             </Grid>
         </Border>
 
         <!--──────── BODY (fills remaining space) ─────────-->
-        <ContentControl Grid.Row="2"
-                        Content="{Binding CurrentContent}"
-                        Margin="0,28,0,0" />
+        <ContentControl Grid.Row="3"
+                        Content="{Binding CurrentContent}" />
 
     </Grid>
 

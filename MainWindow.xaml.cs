@@ -54,7 +54,7 @@ namespace ADLMRateGen
             map.Add(Key.F, ModifierKeys.Control, "Navigate", "Search", () => AppHeader.FocusSearch(), signedIn)
                .AddCommand(Key.F5, ModifierKeys.None, "Data", "Sync from Cloud", () => vm.IsLoggedIn ? vm.RefreshCloudDataCommand : null)
                .AddCommand(Key.E, ModifierKeys.Control, "Data", "Export all rates", () => vm.IsLoggedIn ? vm.ExportAllRatesCommand : null)
-               .AddCommand(Key.B, ModifierKeys.Control, "View", "Collapse or expand the sidebar", () => vm.ToggleSidebarCommand)
+               .AddCommand(Key.B, ModifierKeys.Control, "View", "Fold or unfold the rail", () => vm.ToggleSidebarCommand)
                .Add(Key.L, ModifierKeys.Control | ModifierKeys.Shift, "View", "Switch light / dark theme", () => AppHeader.ToggleTheme());
 
             map.AttachTo(this);

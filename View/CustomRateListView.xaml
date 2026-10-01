@@ -82,7 +82,7 @@
                 </Grid>
 
                 <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <DataGrid x:Name="Table" MinWidth="900" Style="{StaticResource SxTable}"
+                <DataGrid x:Name="Table" MinWidth="900" Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Style="{StaticResource SxTable}"
                           ItemsSource="{Binding RatesView}"
                           SelectedItem="{Binding SelectedRate}">
                     <DataGrid.Columns>

@@ -1,311 +1,127 @@
-<?xml version="1.0" encoding="utf-8"?>
-<UserControl x:Class="ADLMRateGen.View.LabourPriceView"
+﻿<UserControl x:Class="ADLMRateGen.View.LabourPriceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:ADLMRateGen.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             Width="660"
-             Height="680">
-
+             Tag="SxSheet"
+             d:DesignWidth="620" d:DesignHeight="640">
+    <!-- Add or edit a labour price, as a suite sheet (Richard's design,
+         30 Sep 2026): the same sheet, fields and footer as Rate Composition and
+         the custom-rate builder. -->
     <UserControl.Resources>
-        <conv:BoolToStringConverter  x:Key="BoolToStringConverter" />
-        <conv:BoolToCommandConverter x:Key="BoolToCommandConverter" />
-
-        <!-- Figma input field style -->
-        <Style x:Key="FigmaInput" TargetType="TextBox">
-            <Setter Property="Background" Value="{DynamicResource BgInput}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushLight}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontFamily" Value="{DynamicResource AppFont}" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource Blue900Brush}" />
-            <Setter Property="Padding" Value="20,14" />
-            <Setter Property="CaretBrush" Value="{DynamicResource DarkButtonBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="12"
-                                SnapsToDevicePixels="True">
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                          Margin="{TemplateBinding Padding}"
-                                          VerticalAlignment="Center" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="{DynamicResource ButCol}" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="FigmaInputReadOnly" TargetType="TextBox" BasedOn="{StaticResource FigmaInput}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                    <Setter Property="IsReadOnly" Value="True" />
-                    <Setter Property="Opacity" Value="0.7" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+        <conv:BoolToStringConverter x:Key="BoolToStringConverter" />
     </UserControl.Resources>
 
-    <Border Background="{DynamicResource BackgroundBrush}"
-            BorderBrush="{DynamicResource BorderBrushLight}"
-            BorderThickness="1"
-            CornerRadius="24"
-            Padding="56,44"
-            SnapsToDevicePixels="True">
+    <Border Style="{StaticResource SxSheet}" Width="620" MaxHeight="760">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled"
-                      Padding="0,0,6,0">
-        <StackPanel>
-
-            <!-- Title -->
-            <TextBlock Text="{Binding IsEditing,
-                       Converter={StaticResource BoolToStringConverter},
-                       ConverterParameter='Update Library|Add New Labour'}"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="28"
-                       FontWeight="Bold"
-                       Foreground="{DynamicResource Blue900Brush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,4" />
-
-            <!-- Subtitle -->
-            <TextBlock Text="Can't find your desired labour item in our library?"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,32" />
-
-            <!-- Name of Labour Item -->
-            <TextBlock Text="Name of Labour Item"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       Margin="0,0,0,8" />
-            <TextBox Text="{Binding LabourName, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FigmaInputReadOnly}" />
-
-            <!-- Unit + Price row -->
-            <Grid Margin="0,18,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="18" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="8" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Grid.Column="0"
-                           Text="Unit"
-                           FontFamily="{DynamicResource AppFont}"
-                           FontSize="12.8"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource HintGrey}" />
-
-                <StackPanel Grid.Row="0" Grid.Column="2"
-                            Orientation="Horizontal">
-                    <TextBlock Text="Price"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="12.8"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource HintGrey}" />
-                    <TextBlock Text="{Binding CurrencyLabel, StringFormat=' ({0})'}"
-                               FontSize="12"
-                               FontWeight="Normal"
-                               Foreground="{DynamicResource OrangeAccentBrush}"
-                               VerticalAlignment="Center"
-                               Margin="2,0,0,0" />
-                </StackPanel>
-
-                <TextBox Grid.Row="2" Grid.Column="0"
-                         Text="{Binding LabourUnit}"
-                         Style="{StaticResource FigmaInputReadOnly}" />
-
-                <TextBox Grid.Row="2" Grid.Column="2"
-                         Text="{Binding LabourPrice, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource FigmaInput}" />
-            </Grid>
-
-            <!-- Category -->
-            <TextBlock Text="Category"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       Margin="0,18,0,8" />
-            <TextBox Text="{Binding NewLabourCategory}"
-                     Style="{StaticResource FigmaInputReadOnly}" />
-
-            <!-- Notes: the estimator's own specification for a rate they added.
-                 Optional, and the panel below shows it in place of the bundled
-                 reference — a rate you added yourself has no bundled entry. -->
-            <TextBlock Text="Specification / notes (optional)"
-                       FontFamily="{DynamicResource AppFont}"
-                       FontSize="12.8"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource HintGrey}"
-                       Margin="0,18,0,8" />
-            <TextBox Text="{Binding NewLabourNote, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FigmaInput}"
-                     AcceptsReturn="True"
-                     TextWrapping="Wrap"
-                     VerticalContentAlignment="Top"
-                     MinHeight="86"
-                     MaxHeight="150"
-                     VerticalScrollBarVisibility="Auto"
-                     ToolTip="What the item is and what it produces in a day — so anyone pricing against this rate can see what it has to cover." />
-
-            <!-- Save / Update Button -->
-            <Button Margin="0,32,0,0"
-                    HorizontalAlignment="Stretch"
-                    Cursor="Hand"
-                    Content="{Binding IsEditing,
-                              Converter={StaticResource BoolToStringConverter},
-                              ConverterParameter='Update Library|Save to Database'}">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{DynamicResource DarkButtonBrush}" />
-                        <Setter Property="BorderThickness" Value="0" />
-                        <Setter Property="Command" Value="{Binding SaveLabourCommand}" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="BtnBorder"
-                                            Background="{TemplateBinding Background}"
-                                            CornerRadius="13"
-                                            Height="58"
-                                            Padding="32,16">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center" />
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="BtnBorder"
-                                                    Property="Background" Value="{DynamicResource DarkButtonHoverBrush}" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                <Setter Property="Command"
-                                        Value="{Binding UpdateLabourCommand}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-                <Button.ContentTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   FontFamily="{DynamicResource AppFont}"
-                                   FontSize="18"
-                                   FontWeight="Medium"
-                                   Foreground="{DynamicResource OnDarkButtonText}"
-                                   TextAlignment="Center" />
-                    </DataTemplate>
-                </Button.ContentTemplate>
-            </Button>
-
-            <!-- ── Reference: what this item is, and what it produces ──
-
-                 Read-only, and deliberately below the save button: it informs the
-                 rate above it without competing with the fields. Hidden entirely
-                 when nothing is recorded, rather than showing an empty frame. -->
-            <Border Margin="0,28,0,0"
-                    Padding="18,16"
-                    CornerRadius="14"
-                    Background="{DynamicResource BgInput}"
-                    BorderBrush="{DynamicResource BorderBrushLight}"
-                    BorderThickness="1"
-                    Visibility="{Binding HasSpec, Converter={StaticResource BoolVis}}">
+            <DockPanel Margin="24,24,24,16">
+                <Button DockPanel.Dock="Right" Style="{StaticResource SxSheetBtn}" Content="×" VerticalAlignment="Top"
+                        Click="Close_Click" ToolTip="Close without saving" />
                 <StackPanel>
-
-                    <TextBlock Text="Specification &amp; expected output"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="12.8"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource Blue900Brush}"
-                               Margin="0,0,0,10" />
-
-                    <TextBlock Text="{Binding Spec.Spec}"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="12"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource CellTextBrush}" />
-
-                    <!-- The output is the figure people came for, so it is the one
-                         thing here given any weight. -->
-                    <StackPanel Margin="0,12,0,0">
-                        <TextBlock Text="Expected output"
-                                   FontFamily="{DynamicResource AppFont}"
-                                   FontSize="10.5"
-                                   FontWeight="SemiBold"
-                                   Opacity="0.65"
-                                   Foreground="{DynamicResource CellTextBrush}" />
-                        <TextBlock Text="{Binding Spec.Output}"
-                                   FontFamily="{DynamicResource AppFont}"
-                                   FontSize="13.5"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource Blue900Brush}" />
-                    </StackPanel>
-
-                    <!-- Never shown without the basis: soil, haul and gang move
-                         these figures more than the machine does. -->
-                    <TextBlock Text="{Binding Spec.Basis}"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="11.5"
-                               Margin="0,6,0,0"
-                               TextWrapping="Wrap"
-                               Opacity="0.85"
-                               Foreground="{DynamicResource CellTextBrush}" />
-
-                    <TextBlock Margin="0,12,0,0"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="11.5"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource CellTextBrush}">
-                        <Run Text="Running: "
-                             FontWeight="SemiBold" /><Run Text="{Binding Spec.Running, Mode=OneWay}" />
-                    </TextBlock>
-
-                    <TextBlock Text="{Binding Spec.Source}"
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="10.5"
-                               Margin="0,10,0,0"
-                               TextWrapping="Wrap"
-                               Opacity="0.6"
-                               FontStyle="Italic"
-                               Foreground="{DynamicResource CellTextBrush}" />
-
-                    <TextBlock Text="Indicative only. Site conditions, operator and gang make-up change these figures substantially — treat them as a sense check on your rate, not a guarantee."
-                               FontFamily="{DynamicResource AppFont}"
-                               FontSize="10.5"
-                               Margin="0,10,0,0"
-                               TextWrapping="Wrap"
-                               Opacity="0.6"
-                               Foreground="{DynamicResource CellTextBrush}" />
+                    <TextBlock Style="{StaticResource SxH2}"
+                               Text="{Binding IsEditing, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Edit labour|Add labour'}" />
+                    <TextBlock Style="{StaticResource SxLede}" Foreground="{DynamicResource SxInk3}"
+                               Text="{Binding IsEditing, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Change it here and every rate built from it is repriced.|Not in the ADLM library? Add it; it stays on this PC.'}" />
                 </StackPanel>
-            </Border>
+            </DockPanel>
 
-        </StackPanel>
-        </ScrollViewer>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Padding="24,0,24,24">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Name of labour" />
+                    <TextBox Style="{StaticResource SxField}" Margin="0,0,0,16"
+                             Text="{Binding LabourName, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SxLabel}" Text="Unit" />
+                            <TextBox Style="{StaticResource SxField}" Tag="e.g. m2, Bag, day"
+                                     Text="{Binding LabourUnit}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource SxLabel}">
+                                <Run Text="Price" /><Run Text="{Binding CurrencyLabel, StringFormat=' ({0})', Mode=OneWay}"
+                                                         Foreground="{DynamicResource SxInk3}" FontWeight="Normal" />
+                            </TextBlock>
+                            <TextBox Style="{StaticResource SxField}" TextAlignment="Right"
+                                     Text="{Binding LabourPrice, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Category" />
+                    <TextBox Style="{StaticResource SxField}" Tag="e.g. Cement and aggregates"
+                             Text="{Binding NewLabourCategory}" />
+
+                    <TextBlock Style="{StaticResource SxLabel}" Text="Note" Margin="0,16,0,5" />
+                    <TextBox Style="{StaticResource SxField}" AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalContentAlignment="Top" MinHeight="84" MaxHeight="150"
+                             VerticalScrollBarVisibility="Auto"
+                             Tag="What it is and what it produces in a day"
+                             ToolTip="What the item is and what it produces in a day, so anyone pricing against this rate can see what it has to cover."
+                             Text="{Binding NewLabourNote, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!-- The library's own specification and output for this item. Read-only:
+                         it informs the price without competing with the fields, and it is
+                         hidden when nothing is recorded. -->
+                    <Border Margin="0,24,0,0" Padding="16" CornerRadius="14" BorderThickness="1"
+                            Background="{DynamicResource SxBgAlt}" BorderBrush="{DynamicResource SxLine2}"
+                            Visibility="{Binding HasSpec, Converter={StaticResource BoolVis}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SxH3}" FontSize="13.5" Text="Specification and expected output" Margin="0,0,0,8" />
+                            <TextBlock Style="{StaticResource SxText}" FontSize="12.5" TextWrapping="Wrap" Text="{Binding Spec.Spec}" />
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11" Margin="0,12,0,0" Text="EXPECTED OUTPUT" />
+                            <TextBlock Style="{StaticResource SxText}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"
+                                       Text="{Binding Spec.Output}" />
+                            <!-- Never shown without the basis: soil, haul and gang move these
+                                 figures more than the machine does. -->
+                            <TextBlock Style="{StaticResource SxMuted}" Margin="0,6,0,0" Text="{Binding Spec.Basis}" />
+                            <TextBlock Style="{StaticResource SxMuted}" Margin="0,10,0,0">
+                                <Run Text="Running: " FontWeight="SemiBold" /><Run Text="{Binding Spec.Running, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11" FontStyle="Italic" Margin="0,10,0,0"
+                                       Text="{Binding Spec.Source}" />
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11" Margin="0,10,0,0"
+                                       Text="Indicative only. Site conditions, operator and gang make-up change these figures substantially; treat them as a sense check on your rate, not a guarantee." />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="2" Style="{StaticResource SxSheetFoot}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button Style="{StaticResource SxBtnGhost}" Content="Cancel" Margin="0,0,10,0" Click="Close_Click" />
+                    <Button Grid.Column="1"
+                            Content="{Binding IsEditing, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Update the library|Save to the library'}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SxBtn}">
+                                <Setter Property="Command" Value="{Binding SaveLabourCommand}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                        <Setter Property="Command" Value="{Binding UpdateLabourCommand}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
     </Border>
 </UserControl>
