@@ -159,7 +159,9 @@ namespace ADLMRateGen.Services
                                 .OrderByDescending(r => r.Trade == trade).FirstOrDefault();
                 if (exact != null) return (exact, total / exact.NetCost);
             }
-            if (words.Count == 0) return null;
+            // Matching by a clean quantity needs the line to point back or give a thickness
+            // ("Mortar 12mm thick (See Blockwork)"); "Concrete spacers, 5% of steel" is neither.
+            if (words.Count == 0 || !(pointsBack || Regex.IsMatch(name, @"\d+\s*mm\s+thick", RegexOptions.IgnoreCase))) return null;
             (Ref Ref, double Qty)? pick = null; double bestErr = double.MaxValue;
             foreach (var r in refs.Where(r => words.Any(w => r.Description.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0)))
             {
@@ -198,8 +200,13 @@ namespace ADLMRateGen.Services
 
         // People on the gang: never matched to a material or another rate, whatever their price.
         private static readonly Regex People = new(
-            @"\b(labour|labourer|operator|mason|masons|carpenter|painter|tiler|plumber|electrician|fitter|welder|fixer|foreman|headman|tradesman|ganger|operative|crew|gang|skilled|artisan|mate|torch|burner|compressor|machine|gear|sand pot|output)\b",
+            @"\b(labour|labourer|operator|mason|masons|carpenter|painter|tiler|plumber|electrician|fitter|welder|fixer|foreman|headman|tradesman|ganger|operative|crew|gang|skilled|artisan|mate|torch|burner|compressor|machine|gear|sand pot|output|driver|motor-?boy|banksman|steelfixer)\b",
             RegexOptions.IgnoreCase);
+
+        private static readonly Regex Consumables = new(@"\b(consumables|sundries|small tools|lubricants?)\b", RegexOptions.IgnoreCase);
+
+        // "lit/m2", "kg per m3": a quantity per unit of the work, not per day.
+        private static readonly Regex PerUnitOfWork = new(@"(/|\bper\s+)(m|m2|m3|sqm|no|tonne|t)\b", RegexOptions.IgnoreCase);
 
         // Time-based units: a line paid by the hour or the day is labour or plant hire.
         private static readonly Regex TimeUnit = new(
@@ -254,6 +261,10 @@ namespace ADLMRateGen.Services
             bool anyAssumed = false;
             var breakdown = new ObservableCollection<CarbonRateBreakdownLine>();
 
+            // A build-up with plant hired by the day ("1 No/Day") states its fuel and its
+            // consumables for that same day, even when their unit ("250 Liters", "3%") says not.
+            bool hasDayLines = lines.Cast<object?>().Any(l => l != null && Batch.IsMatch(Prop<string>(l, "Unit") ?? ""));
+
             foreach (var line in lines)
             {
                 if (line == null) continue;
@@ -268,7 +279,10 @@ namespace ADLMRateGen.Services
                 var name = KindPrefix.Replace(raw, "").Trim();
                 var kind = KindPrefix.Match(raw).Success ? KindPrefix.Match(raw).Groups[1].Value.ToLowerInvariant() : "";
                 resourceCost += total;
-                bool batch = Batch.IsMatch(unit) || Regex.IsMatch(name, @"\bper\s*(day|hr|hour)\b", RegexOptions.IgnoreCase);
+                bool consumable = Consumables.IsMatch(name);
+                bool fuel = CarbonEngine.Match("", name)?.Fuel == true;
+                bool batch = Batch.IsMatch(unit) || Regex.IsMatch(name, @"\bper\s*(day|hr|hour)\b", RegexOptions.IgnoreCase)
+                             || (hasDayLines && (fuel || consumable) && !PerUnitOfWork.IsMatch(unit));
                 if (batch) batchCost += total;
 
                 var bl = new CarbonRateBreakdownLine
@@ -286,7 +300,15 @@ namespace ADLMRateGen.Services
                 // rate by price (a labourer at 962.50 is not the excavation rate that costs the same)
                 bool person = kind == "labour" || Handling.IsMatch(name) || People.IsMatch(name) || TimeUnit.IsMatch(unit)
                               || labs.Any(l => string.Equals(l.LabourName, name, StringComparison.OrdinalIgnoreCase));
-                if (person && !PointsBack.IsMatch(name) && CarbonEngine.Match("", name)?.Fuel != true)
+                if (consumable && !fuel)
+                {
+                    // plant oil, sundries: a small allowance with no published factor, and never
+                    // matched by price to a material that happens to cost the same
+                    bl.CarbonBasis = "Plant oil and consumables: no published carbon factor; not counted. It lowers this rate's coverage.";
+                    breakdown.Add(bl);
+                    continue;
+                }
+                if (person && !PointsBack.IsMatch(name) && !fuel)
                 {
                     coveredCost += total;
                     bl.CarbonKg = 0;
