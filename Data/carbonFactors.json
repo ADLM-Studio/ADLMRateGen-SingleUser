@@ -226,7 +226,7 @@
     {
       "id": "sections",
       "label": "Structural steel sections",
-      "pattern": "^structural steel sections :: (universal beam|rolled steel)|^structural steel :: structural steel$|^ :: .*(universal beam|structural steel)",
+      "pattern": "^structural steel sections :: (universal beam|rolled steel)|^structural steel :: structural steel$|^ :: .*(universal (beam|column)|h section|structural steel)",
       "factor": 1.55,
       "factorSource": "IStructE (2020) How to calculate embodied carbon, Table 2.3 (ICE v3.0 / EPDs), A1-A3: structural sections, worldwide (Worldsteel LCI) 1.55 kgCO2e/kg",
       "mass": {
@@ -265,13 +265,13 @@
     {
       "id": "blocks",
       "label": "Sandcrete hollow blocks",
-      "pattern": "^cement based products :: .*hollow blocks$",
+      "pattern": "^cement based products :: .*hollow blocks$|^ :: .*blocks? per square met",
       "factor": 0.0781,
       "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Concrete block 10 MPa' 0.0781 kgCO2e/kg",
       "mass": {
         "rule": "block"
       },
-      "massBasis": "block mass from its size: 225 mm 23.8 kg, 150 mm 17.3 kg, 100 mm 13.5 kg (solid share 55/60/70% at 1,900 kg/m3)",
+      "massBasis": "mass from NIS 87:2007 block sizes (450 x 225 x 225 mm, 50 mm webs; 450 x 225 x 150 mm, 37.5 mm webs; two cells) at the 1,920 kg/m3 minimum density recommended for Nigerian sandcrete (Structville, citing NIS 87): 225 mm 27.5 kg, 150 mm 18.2 kg; NIS 87 lists no hollow 100 mm block, so 100 mm is taken as solid, 19.4 kg",
       "massAssumed": true,
       "a4": 0.005,
       "wf": 0.01,
@@ -372,16 +372,36 @@
     },
     {
       "id": "tile",
-      "label": "Ceramic floor and wall tiles",
-      "pattern": "^finishes - ceramic (floor|wall) tiles :: ",
+      "label": "Ceramic and vitrified tiles",
+      "pattern": "^finishes - ceramic (floor|wall) tiles :: |^ :: .*(ceramic|vitrified|porcelain).*tiles?",
       "factor": 0.78,
       "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Ceramic tile (commonly used)' 0.78 kgCO2e/kg",
       "mass": {
+        "rule": "tile",
+        "density": 2000,
         "perUnit": {
           "m2": 20
         }
       },
-      "massBasis": "20 kg per m2 of tile",
+      "massBasis": "tile thickness as named x 2,000 kg/m3; 20 kg per m2 where no thickness is named",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.01,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.010 (ceramic)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "vinyl",
+      "label": "Vinyl floor tiles",
+      "pattern": "^ :: .*(floor ?flex|vinyl).*tile|^pvc floor tiles :: ",
+      "factor": 1.23,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Vinyl tile (floor)' 1.23 kgCO2e/kg",
+      "mass": {
+        "rule": "tile",
+        "density": 1400
+      },
+      "massBasis": "tile thickness as named x 1,400 kg/m3",
       "massAssumed": true,
       "a4": 0.032,
       "wf": 0.01,
@@ -436,6 +456,46 @@
         "density": 1.3
       },
       "massBasis": "litres as named x 1.3 kg/litre",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.111,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.111 (paint)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "paint-water-line",
+      "label": "Emulsion, acrylic and latex paint",
+      "pattern": "^ :: .*(emulsion|acrylic|latex)",
+      "factor": 2.54,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Waterborne paint' 2.54 kgCO2e/kg (ICE 2019)",
+      "mass": {
+        "litres": true,
+        "density": 1.3
+      },
+      "massBasis": "litres as named x 1.3 kg/litre",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.111,
+      "wfBasis": "CIDB (2021) worked example: waste factor 0.111 (paint)",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "paint-line",
+      "label": "Paint, primer, coating",
+      "pattern": "^ :: .*(paint|primer|priming|texcote|coating|undercoat|gloss)",
+      "factor": 2.91,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'General paint' 2.91 kgCO2e/kg",
+      "mass": {
+        "litres": true,
+        "density": 1.3,
+        "perUnit": {
+          "kg": 1,
+          "kg/m2": 1
+        }
+      },
+      "massBasis": "litres as named x 1.3 kg/litre; kg as named",
       "massAssumed": true,
       "a4": 0.032,
       "wf": 0.111,

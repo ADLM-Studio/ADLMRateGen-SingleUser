@@ -1,4 +1,4 @@
-using ADLMRateGen.Services;
+﻿using ADLMRateGen.Services;
 using Xunit;
 
 namespace ADLMRateGen.Tests
@@ -33,8 +33,22 @@ namespace ADLMRateGen.Tests
         public void A_225_hollow_block_uses_its_stated_assumed_mass()
         {
             var c = CarbonEngine.Assess("Cement Based Products", "225 x 225 x 450mm (9 x 9 x 18\") Hollow blocks", "No.", 10)!;
-            Assert.Equal(238, c.Kg, 6);
+            Assert.Equal(275, c.Kg, 6);   // NIS 87:2007 size and webs at 1,920 kg/m3
             Assert.True(c.Factor.MassAssumed);
+        }
+
+        [Fact]
+        public void A_tile_takes_its_thickness_from_the_build_up_line()
+        {
+            var c = CarbonEngine.Assess("Finishes - Ceramic floor tiles", "Ceramic floor tiles", "m2", 1, "600 x 600 x 10mm vitrified floor tiles")!;
+            Assert.Equal(20, c.Kg, 6);    // 0.010 m x 2,000 kg/m3
+        }
+
+        [Fact]
+        public void Paint_in_litres_per_square_metre_is_weighed()
+        {
+            var c = CarbonEngine.Assess("", "Emulsion paint", "Lit/m2", 2, "Emulsion paint")!;
+            Assert.Equal(2.6, c.Kg, 6);   // 2 litres x 1.3 kg/l
         }
 
         [Fact]

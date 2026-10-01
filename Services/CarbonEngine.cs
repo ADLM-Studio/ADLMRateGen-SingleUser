@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -100,11 +100,11 @@ namespace ADLMRateGen.Services
         /// Carbon of <paramref name="qty"/> library units of the item, or null when the
         /// item has no factor or its mass cannot be worked out.
         /// </summary>
-        public static LineCarbon? Assess(string? category, string name, string unit, double qty)
+        public static LineCarbon? Assess(string? category, string name, string unit, double qty, string? hint = null)
         {
             var f = Match(category, name);
             if (f == null || qty <= 0) return null;
-            var perUnit = MassPerUnit(f, name, unit);
+            var perUnit = MassPerUnit(f, name, unit, hint);
             if (perUnit == null || perUnit <= 0) return null;
 
             var amount = qty * perUnit.Value;      // kg of material, or litres / kg of fuel
@@ -130,11 +130,24 @@ namespace ADLMRateGen.Services
         private static double Num(string s) => double.Parse(s, CultureInfo.InvariantCulture);
 
         /// <summary>kg (or litres of fuel) per library unit.</summary>
-        public static double? MassPerUnit(Factor f, string name, string unit)
+        public static double? MassPerUnit(Factor f, string name, string unit, string? hint = null)
         {
             var u = (unit ?? "").Trim().ToLowerInvariant().TrimEnd('.');
             var n = (name ?? "").ToLowerInvariant();
+            var h = (hint ?? "").ToLowerInvariant();
             var m = f.Mass;
+
+            // a tile's thickness, where the line or the item names one ("600 x 600 x 10mm",
+            // "1.3mm floor flex"), comes before the per-m2 fallback
+            if (m.Value<string>("rule") == "tile" && (u == "m2" || u.StartsWith("m2")))
+            {
+                foreach (var text in new[] { h, n })
+                {
+                    var t = Regex.Match(text, @"x\s*(\d+(?:\.\d+)?)\s*mm(?!.*x\s*\d)");
+                    if (!t.Success) t = Regex.Match(text, @"^(\d+(?:\.\d+)?)\s*mm\b");
+                    if (t.Success) return Num(t.Groups[1].Value) / 1000.0 * (m.Value<double?>("density") ?? 2000);
+                }
+            }
 
             // stated per unit
             if (m["perUnit"] is JObject per)
@@ -148,10 +161,10 @@ namespace ADLMRateGen.Services
                 }
             }
 
-            // paint: litres in the unit x density
+            // paint: litres in the unit x density ("4 Litre", "Lit/m2", "litre/m2")
             if (m.Value<bool?>("litres") == true)
             {
-                var lm = Regex.Match(u, @"^(\d+(?:\.\d+)?)?\s*(litre|ltr|l)\b");
+                var lm = Regex.Match(u, @"^(\d+(?:\.\d+)?)?\s*(litre|ltr|lit|l)\b");
                 if (u == "gal") return 4.546 * (m.Value<double?>("density") ?? 1.3);
                 if (!lm.Success) return null;
                 var litres = lm.Groups[1].Success ? Num(lm.Groups[1].Value) : 1;
@@ -176,9 +189,10 @@ namespace ADLMRateGen.Services
                 }
                 case "block":
                 {
-                    if (n.StartsWith("225")) return 23.8;
-                    if (n.StartsWith("150")) return 17.3;
-                    if (n.StartsWith("100")) return 13.5;
+                    // NIS 87:2007 sizes at 1,920 kg/m3 (see the factor's massBasis)
+                    if (n.StartsWith("225")) return 27.5;
+                    if (n.StartsWith("150")) return 18.2;
+                    if (n.StartsWith("100")) return 19.4;
                     return null;
                 }
                 case "timber":
