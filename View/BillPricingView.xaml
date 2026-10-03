@@ -1,0 +1,297 @@
+<UserControl x:Class="ADLMRateGen.View.BillPricingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:suite="clr-namespace:ADLMRateGen.View.Suite"
+             mc:Ignorable="d"
+             d:DesignWidth="1200" d:DesignHeight="720">
+    <!-- Price a bill (work-board item rategen-price-a-bill). Built in the suite styles
+         ahead of Richard's design: the layout follows the trade screens (title and lede,
+         a panel with a bar over a table) with a side panel for the selected line. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Head -->
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,24,0">
+                <TextBlock Style="{StaticResource SxH1}" Text="Price a bill" />
+                <TextBlock Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
+                           Text="Open any client's bill of quantities. ADLM AI proposes one of your rates for each item; you accept or change it, and download the priced bill in the client's own layout." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top"
+                        Visibility="{Binding IsReview, Converter={StaticResource BoolVis}}">
+                <Button Style="{StaticResource SxBtnGhost}" Content="Open another bill" Margin="0,0,10,0"
+                        Command="{Binding StartOverCommand}" />
+                <Button Style="{StaticResource SxBtn}" Command="{Binding DownloadExcelCommand}"
+                        ToolTip="Saves a copy of the bill with the rates and amounts filled in. The client's file is not changed.">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Excel}" Margin="0,0,8,0" />
+                        <TextBlock Text="Download Excel" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Notice: AI unavailable, sheets not read, a typical-floor multiplier -->
+        <Border Grid.Row="1" Margin="0,0,0,12" Padding="14,10" CornerRadius="12"
+                Background="{DynamicResource SxAccentTint}" BorderBrush="{DynamicResource SxLine}" BorderThickness="1"
+                Visibility="{Binding HasNotice, Converter={StaticResource BoolVis}}">
+            <TextBlock Style="{StaticResource SxText}" FontSize="13" TextWrapping="Wrap" Text="{Binding Notice}" />
+        </Border>
+
+        <!-- Empty: nothing opened yet -->
+        <Border Grid.Row="2" Style="{StaticResource SxPanel}" VerticalAlignment="Top"
+                Visibility="{Binding IsEmpty, Converter={StaticResource BoolVis}}">
+            <StackPanel MaxWidth="560" HorizontalAlignment="Left" Margin="8">
+                <ContentControl Style="{StaticResource SxIc}" Tag="{StaticResource Ic.Excel}" HorizontalAlignment="Left" Margin="0,0,0,12" />
+                <TextBlock Style="{StaticResource SxH2}" Text="Open a client's bill" />
+                <TextBlock Style="{StaticResource SxMuted}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20"
+                           Text="Any layout, any number of sheets, .xlsx or .xls. RateGen finds the description, unit and quantity columns itself and reads each item with the section and headings above it." />
+                <TextBlock Style="{StaticResource SxMuted}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20"
+                           Text="Nothing is priced until you accept it, and the client's file is never changed: the priced bill is saved as a copy." />
+                <Button Style="{StaticResource SxBtn}" HorizontalAlignment="Left" Margin="0,18,0,0"
+                        Command="{Binding OpenBillCommand}" Content="Open a bill" />
+            </StackPanel>
+        </Border>
+
+        <!-- Working: named steps -->
+        <Border Grid.Row="2" Style="{StaticResource SxPanel}" VerticalAlignment="Top"
+                Visibility="{Binding IsWorking, Converter={StaticResource BoolVis}}">
+            <StackPanel MaxWidth="560" HorizontalAlignment="Left" Margin="8">
+                <TextBlock Style="{StaticResource SxH2}" Text="{Binding BillName}" />
+                <suite:SuiteProgress Margin="0,16,0,0" Steps="{Binding Steps}" Step="{Binding Step}" />
+                <TextBlock Style="{StaticResource SxMuted}" Margin="0,10,0,0" Text="{Binding Status}" />
+                <Button Style="{StaticResource SxBtnGhostSm}" HorizontalAlignment="Left" Margin="0,16,0,0"
+                        Command="{Binding CancelCommand}" Content="Cancel" />
+            </StackPanel>
+        </Border>
+
+        <!-- Review -->
+        <Grid Grid.Row="2" Visibility="{Binding IsReview, Converter={StaticResource BoolVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="340" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource SxPanel}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Bar: what to show, and accept the sure matches at once -->
+                    <WrapPanel Margin="0,0,0,14" VerticalAlignment="Center">
+                        <Border Padding="4" CornerRadius="12" BorderThickness="1" Margin="0,0,14,6"
+                                Background="{DynamicResource SxBgInset}" BorderBrush="{DynamicResource SxLine}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource SxSegment}" Content="All" IsChecked="{Binding IsFilterAll, Mode=TwoWay}" />
+                                <RadioButton Style="{StaticResource SxSegment}" IsChecked="{Binding IsFilterAttention, Mode=TwoWay}">
+                                    <TextBlock>
+                                        <Run Text="Needs attention" />
+                                        <Run Text="{Binding AttentionCount, Mode=OneWay}" FontWeight="Bold" />
+                                    </TextBlock>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SxSegment}" IsChecked="{Binding IsFilterPriced, Mode=TwoWay}">
+                                    <TextBlock>
+                                        <Run Text="Priced" />
+                                        <Run Text="{Binding PricedCount, Mode=OneWay}" FontWeight="Bold" />
+                                    </TextBlock>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+                        <Button Style="{StaticResource SxBtnGhostSm}" Margin="0,0,0,6" VerticalAlignment="Center"
+                                Command="{Binding AcceptSureCommand}"
+                                ToolTip="Accepts every suggestion ADLM AI is at least 85% sure of. You can still change any of them.">
+                            <TextBlock>
+                                <Run Text="Accept the sure matches" />
+                                <Run Text="{Binding SuggestedCount, Mode=OneWay, StringFormat='({0} suggested)'}" />
+                            </TextBlock>
+                        </Button>
+                    </WrapPanel>
+
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <DataGrid x:Name="Table" MinWidth="900" Style="{StaticResource SxTable}"
+                                  Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                                  ItemsSource="{Binding LinesView}"
+                                  SelectedItem="{Binding SelectedLine, Mode=TwoWay}">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow" BasedOn="{StaticResource SxTableRow}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsTitle}" Value="True">
+                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                            <Setter Property="Background" Value="{DynamicResource SxBgInset}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ITEM" Binding="{Binding ItemRef}" Width="56" ElementStyle="{StaticResource SxCellMuted}" />
+                                <DataGridTemplateColumn Header="DESCRIPTION" Width="*" MinWidth="220">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource SxCellDesc}" Text="{Binding Description}" ToolTip="{Binding Context}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="UNIT" Binding="{Binding Unit}" Width="60" ElementStyle="{StaticResource SxCellUnit}" />
+                                <DataGridTextColumn Header="QTY" Binding="{Binding Qty, StringFormat={}{0:N2}}" Width="84"
+                                                    HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
+                                <DataGridTemplateColumn Header="YOUR RATE" Width="250">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource SxCell}" Text="{Binding MatchName}" TextTrimming="CharacterEllipsis" ToolTip="{Binding MatchName}" />
+                                                <TextBlock Style="{StaticResource SxCellMuted}" FontSize="11" Text="{Binding Status}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="SURE" Binding="{Binding ConfidenceText}" Width="60"
+                                                    HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
+                                <DataGridTextColumn Header="RATE" Binding="{Binding UnitRate, Converter={StaticResource MoneyConv}}" Width="Auto" MinWidth="110"
+                                                    HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
+                                <DataGridTemplateColumn Header="AMOUNT" Width="Auto" MinWidth="130" HeaderStyle="{StaticResource SxTableHeaderRight}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource SxCellNumB}" Text="{Binding Amount, Converter={StaticResource MoneyConv}}"
+                                                       Visibility="{Binding IsPriced, Converter={StaticResource BoolVis}}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
+
+                    <!-- Totals: accepted lines only -->
+                    <Grid Grid.Row="2" Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource SxMuted}" VerticalAlignment="Center">
+                            <Run Text="{Binding BillName, Mode=OneWay}" />
+                            <Run Text="·" />
+                            <Run Text="{Binding PricedCount, Mode=OneWay}" />
+                            <Run Text="of" />
+                            <Run Text="{Binding ItemCount, Mode=OneWay}" />
+                            <Run Text="items priced" />
+                        </TextBlock>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource SxLabel}" Text="BILL TOTAL" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <TextBlock Style="{StaticResource SxH2}" Text="{Binding GrandTotal, Converter={StaticResource MoneyConv}}" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Side panel: the selected line, else the section totals -->
+            <Border Grid.Column="2" Style="{StaticResource SxPanel}">
+                <Grid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  Visibility="{Binding HasSelection, Converter={StaticResource InvBoolVis}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SxLabel}" Text="BY SECTION" Margin="0,0,0,10" />
+                            <ItemsControl ItemsSource="{Binding SectionTotals}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,10,0">
+                                                <TextBlock Style="{StaticResource SxText}" FontSize="13" TextWrapping="Wrap" Text="{Binding Label}" />
+                                                <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5">
+                                                    <Run Text="{Binding Priced, Mode=OneWay}" />
+                                                    <Run Text="of" />
+                                                    <Run Text="{Binding Items, Mode=OneWay}" />
+                                                    <Run Text="priced" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Style="{StaticResource SxText}" FontSize="13" FontWeight="SemiBold"
+                                                       Text="{Binding Total, Converter={StaticResource MoneyConv}}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Text="Select a line to see how it was read and to choose another rate." />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Grid Visibility="{Binding HasSelection, Converter={StaticResource BoolVis}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel DataContext="{Binding SelectedLine}">
+                            <TextBlock Style="{StaticResource SxLabel}" Text="THE LINE, AS READ" />
+                            <TextBlock Style="{StaticResource SxText}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" Text="{Binding Context}" />
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="12" Margin="0,6,0,0">
+                                <Run Text="{Binding Qty, Mode=OneWay, StringFormat={}{0:N2}}" />
+                                <Run Text="{Binding Unit, Mode=OneWay}" />
+                                <Run Text="·" />
+                                <Run Text="{Binding SheetName, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource SxLabel}" Text="YOUR RATE" Margin="0,16,0,0" />
+                            <TextBlock Style="{StaticResource SxText}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0" Text="{Binding MatchName}" />
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0">
+                                <Run Text="{Binding MatchTrade, Mode=OneWay}" />
+                                <Run Text="{Binding ConfidenceText, Mode=OneWay, StringFormat='· ADLM AI {0} sure'}" />
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="12" FontStyle="Italic" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding Reason}" />
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding Status}" />
+                        </StackPanel>
+                        <WrapPanel Grid.Row="1" Margin="0,12,0,14">
+                            <Button Style="{StaticResource SxBtnSm}" Content="Accept" Margin="0,0,8,0" Command="{Binding AcceptCommand}" />
+                            <Button Style="{StaticResource SxBtnGhostSm}" Content="Leave unpriced" Command="{Binding ClearCommand}" />
+                        </WrapPanel>
+                        <DockPanel Grid.Row="2">
+                            <TextBlock DockPanel.Dock="Top" Style="{StaticResource SxLabel}" Text="CHOOSE ANOTHER RATE" />
+                            <TextBox DockPanel.Dock="Top" Style="{StaticResource SxFieldSm}" Margin="0,6,0,8" Tag="Search your rates"
+                                     Text="{Binding RateSearch, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+                            <ListBox x:Name="RateList" ItemsSource="{Binding RateResults}" BorderThickness="0" Background="Transparent"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     MouseDoubleClick="RateList_MouseDoubleClick" KeyDown="RateList_KeyDown"
+                                     ToolTip="Double-click (or Enter) to price the line with this rate.">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Margin="0,0,8,0">
+                                                <TextBlock Style="{StaticResource SxText}" FontSize="12.5" TextWrapping="Wrap" Text="{Binding Name}" />
+                                                <TextBlock Style="{StaticResource SxMuted}" FontSize="11">
+                                                    <Run Text="{Binding Trade, Mode=OneWay}" />
+                                                    <Run Text="·" />
+                                                    <Run Text="{Binding Unit, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Style="{StaticResource SxText}" FontSize="12.5"
+                                                       Text="{Binding Rate, Converter={StaticResource MoneyConv}}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

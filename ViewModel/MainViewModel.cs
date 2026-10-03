@@ -282,6 +282,16 @@ namespace ADLMRateGen.ViewModel
 
         public ICommand SelectedCarbonOthersViewCommand { get; }
 
+        private bool _isBillPricingActive;
+        public bool IsBillPricingActive
+        {
+            get => _isBillPricingActive;
+            set { _isBillPricingActive = value; RaisePropertyChanged(); }
+        }
+        public ICommand SelectedBillPricingViewCommand { get; }
+        /// <summary>Price a bill: any client's bill priced from these same rates (work-board item rategen-price-a-bill).</summary>
+        public ViewModel.BillPricing.BillPricingViewModel BillPricingViewModel { get; } = new();
+
         /* ───────── child view-models ───────── */
         public SignInViewModel SignInViewModel { get; }
         public MaterialPriceViewModel MaterialPriceViewModel { get; }
@@ -373,6 +383,7 @@ namespace ADLMRateGen.ViewModel
                 IsSteelworkActive = value == SteelWorkViewModel;
                 IsCustomRateInputActive = value == CustomRateListViewModel;
                 IsCarbonOthersActive = value == CarbonOthersViewModel;
+                IsBillPricingActive = value == BillPricingViewModel;
 
 
                 RaisePropertyChanged();
@@ -576,6 +587,8 @@ namespace ADLMRateGen.ViewModel
             })
                 coll.CollectionChanged += (_, __) => carbonVM.RequestRebuild();
             UserRateEditStore.Current.OverridesChanged += (_, __) => carbonVM.RequestRebuild();
+            // A bill is priced from the same rates the carbon screen reads.
+            BillPricingViewModel.Sources = carbonVM.Sources;
             carbonVM.RequestRebuild();
             CustomRateListViewModel = customListVM;
             CustomRateEntryViewModel = customEntryVM;
@@ -693,6 +706,7 @@ namespace ADLMRateGen.ViewModel
             RefreshCloudDataCommand = new RelayCommand(async _ => await RefreshCloudDataAsync(manual: true));
 
             SelectedCarbonOthersViewCommand = new RelayCommand(_ => SelectedViewModel = carbonVM);
+            SelectedBillPricingViewCommand = new RelayCommand(_ => SelectedViewModel = BillPricingViewModel);
 
 
 
