@@ -55,6 +55,21 @@ namespace ADLMRateGen.Services.Bill
                     Rate = Math.Round((decimal)total, 2),
                 });
             }
+            // Bills measure steel by the kg as often as by the tonne. A tonne rate is offered for
+            // kg lines (and a kg rate for tonne lines) at the same money: 1 t = 1,000 kg.
+            foreach (var r in list.Where(r => r.UnitKey == "t" || r.UnitKey == "kg").ToList())
+            {
+                var toKg = r.UnitKey == "t";
+                list.Add(new BillRate
+                {
+                    Id = r.Id + (toKg ? "kg" : "t"),
+                    Trade = r.Trade,
+                    Name = r.Name + (toKg ? " (per kg, from the per-tonne rate)" : " (per tonne, from the per-kg rate)"),
+                    Unit = toKg ? "kg" : "t",
+                    UnitKey = toKg ? "kg" : "t",
+                    Rate = Math.Round(toKg ? r.Rate / 1000m : r.Rate * 1000m, 2),
+                });
+            }
             return list;
         }
 

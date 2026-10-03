@@ -47,6 +47,18 @@ namespace ADLMRateGen.Tests
             Assert.Equal("m3", rates.Single(r => r.Trade == "Concrete").UnitKey);
         }
 
+        [Fact]
+        public void A_tonne_rate_is_offered_per_kg_at_the_same_money()
+        {
+            var rates = BillRateCatalogue.Build(new (string, object)[]
+            {
+                ("Concrete", new FakeRate { Description = "Procure and place 10 to 12mm deformed bar reinforcement", Unit = "tonne", TotalCost = 2_150_000 }),
+            });
+            var kg = rates.Single(r => r.UnitKey == "kg");
+            Assert.Equal(2150m, kg.Rate);
+            Assert.Contains("per kg", kg.Name);
+        }
+
         [Theory]
         [InlineData("Sq.m", "m2")]
         [InlineData("m²", "m2")]

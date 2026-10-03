@@ -137,7 +137,7 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="ITEM" Binding="{Binding ItemRef}" Width="56" ElementStyle="{StaticResource SxCellMuted}" />
+                                <DataGridTextColumn Header="ITEM" Binding="{Binding ItemRef}" Width="70" ElementStyle="{StaticResource SxCellMuted}" />
                                 <DataGridTemplateColumn Header="DESCRIPTION" Width="*" MinWidth="220">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -145,7 +145,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="UNIT" Binding="{Binding Unit}" Width="60" ElementStyle="{StaticResource SxCellUnit}" />
+                                <DataGridTextColumn Header="UNIT" Binding="{Binding Unit}" Width="72" ElementStyle="{StaticResource SxCellUnit}" />
                                 <DataGridTextColumn Header="QTY" Binding="{Binding Qty, StringFormat={}{0:N2}}" Width="84"
                                                     HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
                                 <DataGridTemplateColumn Header="YOUR RATE" Width="250">
@@ -158,7 +158,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="SURE" Binding="{Binding ConfidenceText}" Width="60"
+                                <DataGridTextColumn Header="SURE" Binding="{Binding ConfidenceText}" Width="76"
                                                     HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
                                 <DataGridTextColumn Header="RATE" Binding="{Binding UnitRate, Converter={StaticResource MoneyConv}}" Width="Auto" MinWidth="110"
                                                     HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
