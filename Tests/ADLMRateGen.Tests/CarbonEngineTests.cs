@@ -37,6 +37,41 @@ namespace ADLMRateGen.Tests
             Assert.True(c.Factor.MassAssumed);
         }
 
+        // ---- services: copper conductors and plastic pipe, weighed from the name ----------
+
+        [Theory]
+        [InlineData("4 core 35mm2 PVC/SWA/PVC copper cable", 4 * 35e-6 * 8890)]
+        [InlineData("1 core 16mm2 PVC/PVC copper cable", 16e-6 * 8890)]
+        [InlineData("35mm2 bare copper earth conductor for ground grid", 35e-6 * 8890)]
+        [InlineData("8mm copper round wire, earthing", 3.141592653589793 / 4 * 64e-6 * 8890)]
+        public void A_cable_counts_its_copper_conductor(string name, double kgPerMetre)
+        {
+            var c = CarbonEngine.Assess("", name, "m", 10)!;
+            Assert.Equal("copper-conductor", c.Factor.Id);
+            Assert.Equal(10 * kgPerMetre, c.Kg, 6);
+            Assert.Equal(10 * kgPerMetre * 2.71, c.A13, 6);
+        }
+
+        [Theory]
+        [InlineData("PPR pressure pipe, PN10 to BS EN ISO 15874, 32mm", "ppr-pipe", 32, 2.9, 900)]
+        [InlineData("PPR pipe 25mm incl. 5% waste", "ppr-pipe", 25, 2.3, 900)]
+        [InlineData("PPR pipe 15mm incl. 5% waste", "ppr-pipe", 20, 1.9, 900)]
+        [InlineData("uPVC soil, waste and vent pipe to BS 4514, 100mm", "upvc-soil-pipe", 110, 3.2, 1400)]
+        public void A_pipe_is_weighed_from_its_standard_size(string name, string id, double od, double wall, double density)
+        {
+            var c = CarbonEngine.Assess("", name, "m", 1)!;
+            Assert.Equal(id, c.Factor.Id);
+            Assert.Equal(System.Math.PI * (od - wall) * wall * 1e-6 * density, c.Kg, 6);
+        }
+
+        [Theory]
+        [InlineData("uPVC rigid rainwater downpipe, 75mm")]   // size not verified: left out
+        [InlineData("PPR equal tee, 25mm")]                     // a fitting, not pipe
+        [InlineData("Water closet (WC) suite, complete with cistern, seat and connections")]
+        [InlineData("Split unit air conditioner, 1HP, complete with pipework and brackets")]
+        public void Equipment_and_unverified_sizes_carry_no_carbon(string name)
+            => Assert.Null(CarbonEngine.Assess("", name, "m", 1));
+
         [Fact]
         public void Cement_carries_a_Nigerian_low_end()
         {

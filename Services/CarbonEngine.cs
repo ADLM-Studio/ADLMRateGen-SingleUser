@@ -141,6 +141,9 @@ namespace ADLMRateGen.Services
 
         private static double Num(string s) => double.Parse(s, CultureInfo.InvariantCulture);
 
+        private static bool IsMetre(string u) =>
+            u is "m" or "lm" or "lin m" or "metre" or "metres" or "meter" or "meters" or "mtr" or "rm" or "l.m";
+
         /// <summary>kg (or litres of fuel) per library unit.</summary>
         public static double? MassPerUnit(Factor f, string name, string unit, string? hint = null)
         {
@@ -233,6 +236,38 @@ namespace ADLMRateGen.Services
                     var g = Regex.Match(n, @"\((\d+)x(\d+)mm\).*?(\d)mm");
                     if (!g.Success) return null;
                     return Num(g.Groups[1].Value) / 1000.0 * Num(g.Groups[2].Value) / 1000.0 * Num(g.Groups[3].Value) / 1000.0 * 2500;
+                }
+                case "cable":
+                {
+                    // Copper conductor only, from the cross-section the name gives:
+                    // "4 core 35mm2 ... copper cable", "35mm2 bare copper earth conductor",
+                    // "8mm copper round wire". Insulation, sheath and armour are not counted.
+                    if (!IsMetre(u)) return null;
+                    var density = m.Value<double?>("density") ?? 8890;
+                    var core = Regex.Match(n, @"(\d+)\s*core\s+(\d+(?:\.\d+)?)\s*mm2");
+                    if (core.Success) return Num(core.Groups[1].Value) * Num(core.Groups[2].Value) * 1e-6 * density;
+                    var bare = Regex.Match(n, @"(\d+(?:\.\d+)?)\s*mm2\b.*\bcopper\b");
+                    if (bare.Success) return Num(bare.Groups[1].Value) * 1e-6 * density;
+                    var round = Regex.Match(n, @"(\d+(?:\.\d+)?)\s*mm\s+copper\s+round\s+wire");
+                    if (round.Success)
+                    {
+                        var d = Num(round.Groups[1].Value);
+                        return Math.PI / 4 * d * d * 1e-6 * density;
+                    }
+                    return null;
+                }
+                case "pipe":
+                {
+                    // Outside diameter x wall from the factor's own size table (a standard's
+                    // dimensions), keyed by the first size the name gives: "PPR ... 32mm".
+                    if (!IsMetre(u) || m["sizes"] is not JObject sizes) return null;
+                    foreach (Match s in Regex.Matches(n, @"(\d+)\s*mm\b"))
+                    {
+                        if (sizes[s.Groups[1].Value] is not JArray dims || dims.Count != 2) continue;
+                        double od = (double)dims[0], wall = (double)dims[1];
+                        return Math.PI * (od - wall) * wall * 1e-6 * (m.Value<double?>("density") ?? 1000);
+                    }
+                    return null;
                 }
             }
             return null;

@@ -565,6 +565,100 @@
       "wfBasis": "no published waste factor; site waste not counted",
       "c34": 0.013,
       "fuel": false
+    },
+    {
+      "id": "copper-conductor",
+      "label": "Copper conductor (cable and earthing)",
+      "pattern": ":: .*(\\b\\d+\\s*core\\b.*\\bcopper\\b.*\\bcable\\b|\\bbare copper\\b.*\\bconductor\\b|\\bcopper round wire\\b)",
+      "factor": 2.71,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Copper' (pipe table) 2.71 kgCO2e/kg, the inventory's only copper figure (ICE v3.0 copper, EU tube and sheet)",
+      "mass": {
+        "rule": "cable",
+        "density": 8890
+      },
+      "massBasis": "copper conductor only: cores x nominal cross-section as named x 8,890 kg/m3 (IEC 60028 annealed copper); insulation, sheath and armour are not counted, so the figure is a floor",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "ppr-pipe",
+      "label": "PP-R pressure pipe",
+      "pattern": ":: .*\\bppr\\b.*\\bpipe\\b",
+      "factor": 4.49,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'Plastics, Polypropylene' 4.49 kgCO2e/kg (the inventory has no polypropylene pipe row)",
+      "mass": {
+        "rule": "pipe",
+        "density": 900,
+        "sizes": {
+          "15": [
+            20,
+            1.9
+          ],
+          "20": [
+            20,
+            1.9
+          ],
+          "25": [
+            25,
+            2.3
+          ],
+          "32": [
+            32,
+            2.9
+          ],
+          "40": [
+            40,
+            3.7
+          ],
+          "50": [
+            50,
+            4.6
+          ],
+          "63": [
+            63,
+            5.8
+          ]
+        }
+      },
+      "massBasis": "PN10 (SDR 11) to DIN 8077 / EN ISO 15874: 20 x 1.9, 25 x 2.3, 32 x 2.9, 40 x 3.7, 50 x 4.6, 63 x 5.8 mm; a '15mm' (1/2 in) pipe taken as the 20mm size, PN10 where the line does not say; PP-R at 900 kg/m3",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": false
+    },
+    {
+      "id": "upvc-soil-pipe",
+      "label": "uPVC soil and vent pipe",
+      "pattern": ":: .*\\bu?pvc\\b.*\\bsoil\\b.*\\bpipe\\b",
+      "factor": 3.23,
+      "factorSource": "CIDB Malaysia (2021) Embodied Carbon Inventory Data for Construction Materials, cradle-to-gate (compiled from ICE v3.0, EPDs and national LCA data): 'PVC' (pipe table) 3.23 kgCO2e/kg",
+      "mass": {
+        "rule": "pipe",
+        "density": 1400,
+        "sizes": {
+          "100": [
+            110,
+            3.2
+          ],
+          "110": [
+            110,
+            3.2
+          ]
+        }
+      },
+      "massBasis": "110 x 3.2 mm (BS 4514 / EN 1329 soil pipe, manufacturer data); PVC-U at 1,400 kg/m3",
+      "massAssumed": true,
+      "a4": 0.032,
+      "wf": 0.0,
+      "wfBasis": "no published waste factor; site waste not counted",
+      "c34": 0.013,
+      "fuel": false
     }
   ]
 }
