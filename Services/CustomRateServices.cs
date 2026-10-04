@@ -13,6 +13,8 @@ namespace ADLMRateGen.Services
         // Events
         public static event Action<CustomRate>? OnCustomRateSaved;
         public static event Action<CustomRate>? OnCustomRateUpdated;
+        /// <summary>The cloud sync rewrote the file (rates downloaded or refreshed). Anything holding the list should reload it.</summary>
+        public static event Action? OnCustomRatesReplaced;
 
         // Thread-safety for file IO
         private static readonly object _sync = new object();
@@ -78,6 +80,78 @@ namespace ADLMRateGen.Services
 
             OnCustomRateUpdated?.Invoke(updatedRate);
         }
+
+        /// <summary>Load, change and save the file under one lock, so a sync never writes back a stale list.</summary>
+        public static void Mutate(Func<List<CustomRate>, bool> change, bool notify)
+        {
+            bool changed;
+            lock (_sync)
+            {
+                var rates = LoadCustomRates().ToList();
+                changed = change(rates);
+                if (changed) SaveRates(rates);
+            }
+
+            if (changed && notify) OnCustomRatesReplaced?.Invoke();
+        }
+
+        /* ── deletions the user made here, still to be sent to the cloud ──
+         *
+         * The cloud sync no longer treats "missing from this PC" as "deleted":
+         * that erased every rate made on the website or on another PC. A rate
+         * is deleted in the cloud only when the user deleted it here, and this
+         * file is that record.
+         */
+
+        private static string DeletionsPath => Path.Combine(AppPaths.UserDataDir, "custom-rates-deleted.json");
+
+        public static HashSet<string> LoadDeletions()
+        {
+            lock (_sync)
+            {
+                try
+                {
+                    if (!File.Exists(DeletionsPath))
+                        return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var ids = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(DeletionsPath)) ?? new List<string>();
+                    return new HashSet<string>(ids.Where(id => !string.IsNullOrWhiteSpace(id)), StringComparer.OrdinalIgnoreCase);
+                }
+                catch
+                {
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                }
+            }
+        }
+
+        public static void RecordDeletion(CustomRate rate)
+        {
+            if (rate == null) return;
+            lock (_sync)
+            {
+                var ids = LoadDeletions();
+                if (ids.Add(CloudKey(rate))) SaveDeletions(ids);
+            }
+        }
+
+        public static void ClearDeletion(string cloudId)
+        {
+            lock (_sync)
+            {
+                var ids = LoadDeletions();
+                if (ids.Remove(cloudId)) SaveDeletions(ids);
+            }
+        }
+
+        private static void SaveDeletions(HashSet<string> ids)
+        {
+            var dir = Path.GetDirectoryName(DeletionsPath)!;
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllText(DeletionsPath, JsonConvert.SerializeObject(ids.OrderBy(id => id).ToList(), Formatting.Indented));
+        }
+
+        /// <summary>The id this rate has in the cloud.</summary>
+        public static string CloudKey(CustomRate rate) =>
+            !string.IsNullOrWhiteSpace(rate.CloudId) ? rate.CloudId!.Trim() : rate.Id.ToString();
 
         public static void SaveRates(IEnumerable<CustomRate> rates)
         {
