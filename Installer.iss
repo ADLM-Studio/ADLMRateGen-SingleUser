@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "ADLM Rate Gen "
-#define MyAppVersion "3.0.0"
+#define MyAppVersion "3.0.1"
 #define MyAppPublisher "ADLM Studio"
 #define MyAppURL "https://www.adlmstudios.net"
 #define MyAppExeName "ADLMRateGen.exe"
