@@ -90,6 +90,10 @@ namespace ADLMRateGen.ViewModel.CustomRate
 
 			CustomRateServices.OnCustomRateUpdated += CustomRateServices_OnCustomRateUpdated;
 
+			// Rates downloaded by the cloud sync. Reload, so a later save of this
+			// list cannot write the file back without them.
+			CustomRateServices.OnCustomRatesReplaced += CustomRateServices_OnCustomRatesReplaced;
+
             // NEW: auto-recalc when libraries change
             MaterialLibraryService.LibraryChanged += OnAnyLibraryChanged;
             LabourLibraryService.LibraryChanged   += OnAnyLibraryChanged;
@@ -148,6 +152,20 @@ namespace ADLMRateGen.ViewModel.CustomRate
 			});
 		}
 
+		private void CustomRateServices_OnCustomRatesReplaced()
+		{
+			App.Current.Dispatcher.Invoke(() =>
+			{
+				var selectedId = SelectedRate?.Id;
+				CustomRates.Clear();
+				foreach (var rate in CustomRateServices.LoadCustomRates())
+					CustomRates.Add(rate);
+				SelectedRate = CustomRates.FirstOrDefault(r => r.Id == selectedId);
+				RatesView.Refresh();
+				LibraryChanged?.Invoke();
+			});
+		}
+
 		private void CustomRateServices_OnCustomRateUpdated(CustomRate updatedRate)
 		{
 			App.Current.Dispatcher.Invoke(() =>
@@ -194,6 +212,9 @@ namespace ADLMRateGen.ViewModel.CustomRate
 		private void DeleteRate()
 		{
 			if (SelectedRate == null) return;
+
+			// The cloud deletes a custom rate only when the user deleted it here.
+			CustomRateServices.RecordDeletion(SelectedRate);
 
 			// Remove from collection
 			CustomRates.Remove(SelectedRate);

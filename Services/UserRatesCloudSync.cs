@@ -33,6 +33,14 @@ namespace ADLMRateGen.Services
 
         public static UserRatesCloudSync Instance { get; } = new UserRatesCloudSync();
 
+        // Tells the server this desktop pulls custom rates before it pushes and
+        // deletes only what its user deleted, so its DELETE can be honoured.
+        // Rate Gen 2.9.x and earlier deleted every cloud custom rate missing
+        // from its own list, which erased rates made on the website or on
+        // another PC (server/util/rategenCustomRateGuard.js in ADLMWebsite).
+        internal const string SyncProtocolHeader = "X-ADLM-Rates-Sync";
+        internal const string SyncProtocolVersion = "2";
+
         private readonly SemaphoreSlim _syncLock = new SemaphoreSlim(1, 1);
 
         public DateTime? LastSyncUtc { get; private set; }
@@ -89,8 +97,20 @@ namespace ADLMRateGen.Services
                 UserRateEditStore.Current.ReplaceAll(edits);
                 UserRateEditStore.Current.SaveToDisk();
 
+                var pulled = 0;
+                await _syncLock.WaitAsync(ct).ConfigureAwait(false);
+                try
+                {
+                    using var http = CreateHttpClient();
+                    pulled = (await SyncCustomRatesAsync(auth, http, state.CustomRates, ct).ConfigureAwait(false)).Pulled;
+                }
+                finally
+                {
+                    _syncLock.Release();
+                }
+
                 LastSyncUtc = DateTime.Now;
-                LastStatus = $"User rates pulled from cloud: {edits.Count} component quantities.";
+                LastStatus = $"User rates pulled from cloud: {edits.Count} component quantities, {pulled} custom rates downloaded.";
                 return true;
             }
             catch (Exception ex)
@@ -122,17 +142,22 @@ namespace ADLMRateGen.Services
                 var snapshot = BuildSnapshot(vm);
                 var serverState = await GetServerStateAsync(auth, ct).ConfigureAwait(false);
                 var overrideChanges = CountRateOverrideChanges(snapshot.RateOverrides, serverState.RateOverrides);
-                var customChanges = CountCustomRateChanges(snapshot.CustomRates, serverState.CustomRates);
 
                 using var http = CreateHttpClient();
 
+                // Custom rates sync one by one, cloud first: never by replacing
+                // the cloud's list with this PC's.
+                var customSync = await SyncCustomRatesAsync(auth, http, serverState.CustomRates, ct).ConfigureAwait(false);
+                var customStatus =
+                    $"{customSync.Pulled} custom rates downloaded, {customSync.Pushed} uploaded, {customSync.Deleted} deleted.";
+
                 if (overrideChanges.Upserted == 0 &&
-                    overrideChanges.Deleted == 0 &&
-                    customChanges.Upserted == 0 &&
-                    customChanges.Deleted == 0)
+                    overrideChanges.Deleted == 0)
                 {
                     LastSyncUtc = DateTime.Now;
-                    LastStatus = "User rates sync already up to date.";
+                    LastStatus = customSync.Any
+                        ? $"User rates synced: {customStatus}"
+                        : "User rates sync already up to date.";
                     return true;
                 }
 
@@ -144,14 +169,12 @@ namespace ADLMRateGen.Services
                         http,
                         snapshot,
                         serverState,
-                        overrideChanges,
-                        customChanges,
                         ct).ConfigureAwait(false);
 
                     LastSyncUtc = DateTime.Now;
                     LastStatus =
                         $"User rates synced live: {overrideChanges.Upserted} overrides updated, {overrideChanges.Deleted} removed, " +
-                        $"{customChanges.Upserted} custom rates updated, {customChanges.Deleted} removed.";
+                        customStatus;
                     return true;
                 }
                 catch (Exception ex)
@@ -166,17 +189,10 @@ namespace ADLMRateGen.Services
                     serverState.RateOverrides,
                     ct).ConfigureAwait(false);
 
-                var customSync = await SyncCustomRatesAsync(
-                    auth,
-                    http,
-                    snapshot.CustomRates,
-                    serverState.CustomRates,
-                    ct).ConfigureAwait(false);
-
                 LastSyncUtc = DateTime.Now;
                 LastStatus =
                     $"User rates synced: {overrideSync.Upserted} overrides updated, {overrideSync.Deleted} removed, " +
-                    $"{customSync.Upserted} custom rates updated, {customSync.Deleted} removed." +
+                    customStatus +
                     (string.IsNullOrWhiteSpace(bulkFailure) ? string.Empty : $" Fallback mode was used after bulk sync failed: {bulkFailure}");
 
                 return true;
@@ -208,13 +224,12 @@ namespace ADLMRateGen.Services
             HttpClient http,
             UserRateSnapshot snapshot,
             ServerLibraryState serverState,
-            SyncCounters overrideChanges,
-            SyncCounters customChanges,
             CancellationToken ct)
         {
+            // Overrides only. Custom rates never go in a whole-list push: see
+            // SyncCustomRatesAsync.
             var payload = new Dictionary<string, object>();
 
-            if (overrideChanges.Upserted > 0 || overrideChanges.Deleted > 0)
             {
                 // Resolve RateIds before bulk push so the server can match
                 // existing records instead of creating duplicates.
@@ -233,17 +248,6 @@ namespace ADLMRateGen.Services
 
                 payload["rateOverrides"] = snapshot.RateOverrides;
                 payload["ratesBaseVersion"] = serverState.RatesVersion;
-            }
-
-            if (customChanges.Upserted > 0 || customChanges.Deleted > 0)
-            {
-                payload["customRates"] = snapshot.CustomRates;
-                payload["customRatesBaseVersion"] = serverState.CustomRatesVersion;
-            }
-
-            if (payload.Count == 0)
-            {
-                return;
             }
 
             await SendJsonAsync(
@@ -336,74 +340,352 @@ namespace ADLMRateGen.Services
             return new SyncCounters(upserted, deleted);
         }
 
-        private static async Task<SyncCounters> SyncCustomRatesAsync(
+        /// <summary>
+        /// Custom rates, cloud first. Rates the cloud has and this PC does not are
+        /// downloaded. A rate is deleted in the cloud only when the user deleted it
+        /// here (CustomRateServices.RecordDeletion), never because this PC lacks
+        /// it: that rule erased every rate made on the website or another PC.
+        /// Only rates changed here since they last matched the cloud are uploaded.
+        /// </summary>
+        private static async Task<CustomRateSyncResult> SyncCustomRatesAsync(
             ADLMRateGen.ADLM.Auth.AuthClient auth,
             HttpClient http,
-            IReadOnlyList<CustomRatePayload> localCustomRates,
-            IReadOnlyList<CustomRatePayload> serverCustomRates,
+            IReadOnlyList<CustomRatePayload>? serverRates,
             CancellationToken ct)
         {
-            var serverById = (serverCustomRates ?? Array.Empty<CustomRatePayload>())
-                .Where(rate => !string.IsNullOrWhiteSpace(rate.CustomRateId))
-                .GroupBy(rate => rate.CustomRateId, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            var server = (serverRates ?? new List<CustomRatePayload>())
+                .Where(rate => rate != null && !string.IsNullOrWhiteSpace(rate.CustomRateId))
+                .ToList();
+            var deletions = CustomRateServices.LoadDeletions();
 
-            var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var upserted = 0;
+            // Only worth asking when a rate this PC had in step with the cloud is
+            // no longer there.
+            var serverIds = new HashSet<string>(server.Select(rate => rate.CustomRateId.Trim()), StringComparer.OrdinalIgnoreCase);
+            var archived = CustomRateServices.LoadCustomRates()
+                .Any(rate => rate.SyncedSignature != null && !serverIds.Contains(CustomRateServices.CloudKey(rate)))
+                ? await GetDeletedReasonsAsync(auth, ct).ConfigureAwait(false)
+                : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            CustomRatePlan plan = new CustomRatePlan();
+            CustomRateServices.Mutate(local =>
+            {
+                plan = PlanCustomRateSync(local, server, deletions, archived);
+                return plan.LocalChanged;
+            }, notify: true);
+
             var deleted = 0;
-
-            foreach (var local in localCustomRates)
+            foreach (var id in plan.ToDelete)
             {
-                if (string.IsNullOrWhiteSpace(local.CustomRateId))
-                {
-                    continue;
-                }
-
-                localIds.Add(local.CustomRateId);
-                serverById.TryGetValue(local.CustomRateId, out var server);
-
-                if (server != null && AreEquivalent(local, server))
-                {
-                    continue;
-                }
-
-                if (local.CreatedAt == default)
-                {
-                    local.CreatedAt = DateTime.Now;
-                }
-
-                local.UpdatedAt = DateTime.Now;
-
-                await SendJsonAsync(
-                    auth,
-                    http,
-                    HttpMethod.Put,
-                    $"/rategen-v2/library/custom-rates/{Uri.EscapeDataString(local.CustomRateId)}",
-                    local,
-                    ct).ConfigureAwait(false);
-
-                upserted += 1;
-            }
-
-            foreach (var server in serverCustomRates ?? Array.Empty<CustomRatePayload>())
-            {
-                if (string.IsNullOrWhiteSpace(server.CustomRateId) || localIds.Contains(server.CustomRateId))
-                {
-                    continue;
-                }
-
                 await SendJsonAsync(
                     auth,
                     http,
                     HttpMethod.Delete,
-                    $"/rategen-v2/library/custom-rates/{Uri.EscapeDataString(server.CustomRateId)}",
+                    $"/rategen-v2/library/custom-rates/{Uri.EscapeDataString(id)}",
                     null,
                     ct).ConfigureAwait(false);
 
+                CustomRateServices.ClearDeletion(id);
                 deleted += 1;
             }
 
-            return new SyncCounters(upserted, deleted);
+            foreach (var id in plan.StaleDeletions)
+            {
+                CustomRateServices.ClearDeletion(id);
+            }
+
+            var pushed = new Dictionary<Guid, (string Signature, DateTime? CloudUpdatedAt)>();
+            foreach (var rate in plan.ToPush)
+            {
+                var payload = ToCustomRatePayload(rate);
+                if (payload.CreatedAt == default)
+                {
+                    payload.CreatedAt = DateTime.Now;
+                }
+
+                payload.UpdatedAt = DateTime.Now;
+
+                var text = await SendJsonAsync(
+                    auth,
+                    http,
+                    HttpMethod.Put,
+                    $"/rategen-v2/library/custom-rates/{Uri.EscapeDataString(payload.CustomRateId)}",
+                    payload,
+                    ct).ConfigureAwait(false);
+
+                pushed[rate.Id] = (Signature(payload), ReadItemUpdatedAt(text));
+            }
+
+            if (pushed.Count > 0)
+            {
+                // Mark what was uploaded as in step, unless the user changed it
+                // again while the upload ran.
+                CustomRateServices.Mutate(local =>
+                {
+                    var changed = false;
+                    foreach (var rate in local)
+                    {
+                        if (pushed.TryGetValue(rate.Id, out var sent) && Signature(rate) == sent.Signature)
+                        {
+                            rate.SyncedSignature = sent.Signature;
+                            rate.CloudUpdatedAt = sent.CloudUpdatedAt;
+                            changed = true;
+                        }
+                    }
+                    return changed;
+                }, notify: false);
+            }
+
+            return new CustomRateSyncResult(
+                plan.Pulled + plan.Refreshed,
+                pushed.Count,
+                deleted + plan.RemovedLocally);
+        }
+
+        internal sealed class CustomRatePlan
+        {
+            public int Pulled { get; set; }
+            public int Refreshed { get; set; }
+            public int RemovedLocally { get; set; }
+            public bool LocalChanged { get; set; }
+            public List<CustomRate> ToPush { get; } = new List<CustomRate>();
+            public List<string> ToDelete { get; } = new List<string>();
+            public List<string> StaleDeletions { get; } = new List<string>();
+        }
+
+        // The archive reason the server gives an explicit delete from a desktop
+        // that pulls first (server/util/rategenCustomRateGuard.js).
+        internal const string DeletedByClientReason = "deleted-by-client";
+
+        /// <summary>
+        /// Decides the custom-rate sync and applies the cloud's side to
+        /// <paramref name="local"/>. No network: the caller sends what it returns.
+        /// </summary>
+        internal static CustomRatePlan PlanCustomRateSync(
+            List<CustomRate> local,
+            IReadOnlyList<CustomRatePayload> server,
+            ISet<string> deletions,
+            IReadOnlyDictionary<string, string> archivedReasons)
+        {
+            var plan = new CustomRatePlan();
+
+            var serverById = server
+                .Where(rate => rate != null && !string.IsNullOrWhiteSpace(rate.CustomRateId))
+                .GroupBy(rate => rate.CustomRateId.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+            var localByKey = new Dictionary<string, CustomRate>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rate in local)
+            {
+                localByKey.TryAdd(CustomRateServices.CloudKey(rate), rate);
+            }
+
+            foreach (var id in deletions)
+            {
+                (serverById.ContainsKey(id) ? plan.ToDelete : plan.StaleDeletions).Add(id);
+            }
+
+            // Down: what the cloud has that this PC lacks, or has newer.
+            foreach (var pair in serverById)
+            {
+                if (deletions.Contains(pair.Key))
+                {
+                    continue;
+                }
+
+                if (!localByKey.TryGetValue(pair.Key, out var rate))
+                {
+                    rate = FromCloud(pair.Value);
+                    local.Add(rate);
+                    localByKey[pair.Key] = rate;
+                    plan.Pulled += 1;
+                    plan.LocalChanged = true;
+                }
+                else if (IsUnchangedSinceSync(rate) && !SameCloudVersion(rate.CloudUpdatedAt, pair.Value.UpdatedAt))
+                {
+                    ApplyCloud(rate, pair.Value);
+                    plan.Refreshed += 1;
+                    plan.LocalChanged = true;
+                }
+            }
+
+            // Up: what changed here, or the cloud does not have.
+            for (var i = local.Count - 1; i >= 0; i--)
+            {
+                var rate = local[i];
+                var id = CustomRateServices.CloudKey(rate);
+
+                if (serverById.TryGetValue(id, out var cloud))
+                {
+                    if (IsUnchangedSinceSync(rate))
+                    {
+                        continue;
+                    }
+
+                    var payload = ToCustomRatePayload(rate);
+                    if (AreEquivalent(payload, cloud))
+                    {
+                        rate.SyncedSignature = Signature(payload);
+                        rate.CloudUpdatedAt = cloud.UpdatedAt;
+                        plan.LocalChanged = true;
+                    }
+                    else
+                    {
+                        plan.ToPush.Add(rate);
+                    }
+
+                    continue;
+                }
+
+                // In step with the cloud once, gone from it now, and the user
+                // deleted it on another desktop: follow. Anything else (never
+                // uploaded, edited here since, or dropped by an old desktop's
+                // sync) is uploaded, so this PC's copy is never lost.
+                if (IsUnchangedSinceSync(rate) &&
+                    archivedReasons.TryGetValue(id, out var reason) &&
+                    string.Equals(reason, DeletedByClientReason, StringComparison.OrdinalIgnoreCase))
+                {
+                    local.RemoveAt(i);
+                    plan.RemovedLocally += 1;
+                    plan.LocalChanged = true;
+                    continue;
+                }
+
+                plan.ToPush.Add(rate);
+            }
+
+            plan.ToPush.Reverse();
+            return plan;
+        }
+
+        private static bool IsUnchangedSinceSync(CustomRate rate) =>
+            rate.SyncedSignature != null &&
+            string.Equals(Signature(rate), rate.SyncedSignature, StringComparison.Ordinal);
+
+        private static bool SameCloudVersion(DateTime? local, DateTime? cloud)
+        {
+            if (local == null || cloud == null)
+            {
+                return local == null && cloud == null;
+            }
+
+            // Mongo keeps milliseconds.
+            return Math.Abs((local.Value.ToUniversalTime() - cloud.Value.ToUniversalTime()).TotalMilliseconds) < 1;
+        }
+
+        internal static CustomRate FromCloud(CustomRatePayload cloud)
+        {
+            var id = cloud.CustomRateId.Trim();
+            var isGuid = Guid.TryParse(id, out var guid);
+            var rate = new CustomRate
+            {
+                Id = isGuid ? guid : Guid.NewGuid(),
+                CloudId = isGuid ? null : id
+            };
+            ApplyCloud(rate, cloud);
+            return rate;
+        }
+
+        private static void ApplyCloud(CustomRate rate, CustomRatePayload cloud)
+        {
+            rate.Title = !string.IsNullOrWhiteSpace(cloud.Title) ? cloud.Title : cloud.Description;
+            rate.Description = cloud.Description ?? string.Empty;
+            rate.OverheadPercent = cloud.OverheadPercent;
+            rate.ProfitPercent = cloud.ProfitPercent;
+            if (cloud.CreatedAt != default)
+            {
+                rate.CreatedDate = cloud.CreatedAt.ToLocalTime();
+            }
+
+            rate.CloudUnit = cloud.Unit;
+            rate.SectionKey = cloud.SectionKey;
+            rate.SectionLabel = cloud.SectionLabel;
+            // Plant lines (breakdown only) have no place here yet; the server
+            // keeps them when this rate is pushed back.
+            rate.MaterialItems = (cloud.Materials ?? new List<CustomRateLinePayload>())
+                .Select(line => ToEntry(line, RateItemType.Material))
+                .ToList();
+            rate.LabourItems = (cloud.Labour ?? new List<CustomRateLinePayload>())
+                .Select(line => ToEntry(line, RateItemType.Labour))
+                .ToList();
+            rate.CloudUpdatedAt = cloud.UpdatedAt;
+            rate.SyncedSignature = Signature(rate);
+        }
+
+        private static RateEntryItem ToEntry(CustomRateLinePayload line, RateItemType type)
+        {
+            // Unit and price last: setting Description re-prices the line from
+            // this PC's library and would replace the cloud's figure.
+            var item = new RateEntryItem { RateType = type };
+            item.Description = line.Description ?? string.Empty;
+            item.Quantity = line.Quantity;
+            item.Unit = line.Unit ?? string.Empty;
+            item.UnitPrice = line.UnitPrice;
+            return item;
+        }
+
+        private static async Task<Dictionary<string, string>> GetDeletedReasonsAsync(
+            ADLMRateGen.ADLM.Auth.AuthClient auth,
+            CancellationToken ct)
+        {
+            var reasons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var doc = await auth.GetJsonAsync("/rategen-v2/library/custom-rates/deleted", ct).ConfigureAwait(false);
+                if (doc.RootElement.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in items.EnumerateArray())
+                    {
+                        var id = item.TryGetProperty("customRateId", out var idEl) ? idEl.GetString() : null;
+                        var reason = item.TryGetProperty("deletedReason", out var reasonEl) ? reasonEl.GetString() : null;
+                        if (!string.IsNullOrWhiteSpace(id))
+                        {
+                            reasons[id.Trim()] = reason ?? string.Empty;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // A server without the archive: every missing rate is uploaded.
+                System.Diagnostics.Debug.WriteLine($"[UserRatesCloudSync.GetDeletedReasonsAsync] {ex.Message}");
+            }
+
+            return reasons;
+        }
+
+        private static DateTime? ReadItemUpdatedAt(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("item", out var item) &&
+                    item.TryGetProperty("updatedAt", out var updatedAt) &&
+                    updatedAt.ValueKind == JsonValueKind.String &&
+                    updatedAt.TryGetDateTime(out var value))
+                {
+                    return value.ToUniversalTime();
+                }
+            }
+            catch (JsonException)
+            {
+            }
+
+            return null;
+        }
+
+        private readonly struct CustomRateSyncResult
+        {
+            public CustomRateSyncResult(int pulled, int pushed, int deleted)
+            {
+                Pulled = pulled;
+                Pushed = pushed;
+                Deleted = deleted;
+            }
+
+            public int Pulled { get; }
+            public int Pushed { get; }
+            public int Deleted { get; }
+            public bool Any => Pulled > 0 || Pushed > 0 || Deleted > 0;
         }
 
         private static SyncCounters CountRateOverrideChanges(
@@ -455,47 +737,7 @@ namespace ADLMRateGen.Services
             return new SyncCounters(upserted, deleted);
         }
 
-        private static SyncCounters CountCustomRateChanges(
-            IReadOnlyList<CustomRatePayload> localCustomRates,
-            IReadOnlyList<CustomRatePayload> serverCustomRates)
-        {
-            var serverById = (serverCustomRates ?? Array.Empty<CustomRatePayload>())
-                .Where(rate => !string.IsNullOrWhiteSpace(rate.CustomRateId))
-                .GroupBy(rate => rate.CustomRateId, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
-
-            var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var upserted = 0;
-            var deleted = 0;
-
-            foreach (var local in localCustomRates ?? Array.Empty<CustomRatePayload>())
-            {
-                if (string.IsNullOrWhiteSpace(local.CustomRateId))
-                {
-                    continue;
-                }
-
-                localIds.Add(local.CustomRateId);
-                serverById.TryGetValue(local.CustomRateId, out var server);
-
-                if (server == null || !AreEquivalent(local, server))
-                {
-                    upserted += 1;
-                }
-            }
-
-            foreach (var server in serverCustomRates ?? Array.Empty<CustomRatePayload>())
-            {
-                if (!string.IsNullOrWhiteSpace(server.CustomRateId) && !localIds.Contains(server.CustomRateId))
-                {
-                    deleted += 1;
-                }
-            }
-
-            return new SyncCounters(upserted, deleted);
-        }
-
-        private static async Task SendJsonAsync(
+        private static async Task<string> SendJsonAsync(
             ADLMRateGen.ADLM.Auth.AuthClient auth,
             HttpClient http,
             HttpMethod method,
@@ -507,6 +749,7 @@ namespace ADLMRateGen.Services
             {
                 using var request = new HttpRequestMessage(method, CombineUrl(auth.BaseUrl, path));
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+                request.Headers.Add(SyncProtocolHeader, SyncProtocolVersion);
 
                 if (body != null)
                 {
@@ -523,7 +766,7 @@ namespace ADLMRateGen.Services
                 var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    return;
+                    return text;
                 }
 
                 if ((response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden) &&
@@ -591,11 +834,7 @@ namespace ADLMRateGen.Services
                 overrides.AddRange(BuildSectionOverrides(section.key, section.label, section.viewModel));
             }
 
-            var customRates = CustomRateServices.LoadCustomRates()
-                .Select(ToCustomRatePayload)
-                .ToList();
-
-            return new UserRateSnapshot(overrides, customRates);
+            return new UserRateSnapshot(overrides);
         }
 
         private static IEnumerable<(string key, string label, object viewModel)> EnumerateSections(MainViewModel vm)
@@ -693,7 +932,7 @@ namespace ADLMRateGen.Services
             }
         }
 
-        private static CustomRatePayload ToCustomRatePayload(CustomRate rate)
+        internal static CustomRatePayload ToCustomRatePayload(CustomRate rate)
         {
             var materials = (rate.MaterialItems ?? new List<RateEntryItem>())
                 .Select(item => new CustomRateLinePayload
@@ -721,10 +960,12 @@ namespace ADLMRateGen.Services
 
             return new CustomRatePayload
             {
-                CustomRateId = rate.Id.ToString(),
+                CustomRateId = CustomRateServices.CloudKey(rate),
+                SectionKey = rate.SectionKey ?? string.Empty,
+                SectionLabel = rate.SectionLabel ?? string.Empty,
                 Title = rate.Title ?? string.Empty,
                 Description = rate.Description ?? string.Empty,
-                Unit = InferUnit(rate),
+                Unit = !string.IsNullOrWhiteSpace(rate.CloudUnit) ? rate.CloudUnit!.Trim() : InferUnit(rate),
                 Materials = materials,
                 Labour = labour,
                 Breakdown = BuildCustomBreakdown(materials, labour),
@@ -835,44 +1076,28 @@ namespace ADLMRateGen.Services
             return string.Equals(localSignature, serverSignature, StringComparison.Ordinal);
         }
 
-        private static bool AreEquivalent(CustomRatePayload local, CustomRatePayload server)
-        {
-            var localSignature = JsonSerializer.Serialize(new
+        private static bool AreEquivalent(CustomRatePayload local, CustomRatePayload server) =>
+            string.Equals(Signature(local), Signature(server), StringComparison.Ordinal);
+
+        internal static string Signature(CustomRatePayload rate) =>
+            JsonSerializer.Serialize(new
             {
-                id = NormalizeText(local.CustomRateId),
-                sectionKey = NormalizeText(local.SectionKey).ToLowerInvariant(),
-                sectionLabel = NormalizeText(local.SectionLabel),
-                title = NormalizeText(local.Title),
-                description = NormalizeText(local.Description),
-                unit = NormalizeText(local.Unit),
-                netCost = Round(local.NetCost),
-                overheadPercent = Round(local.OverheadPercent),
-                profitPercent = Round(local.ProfitPercent),
-                totalCost = Round(local.TotalCost),
-                materials = NormalizeCustomLines(local.Materials),
-                labour = NormalizeCustomLines(local.Labour),
-                breakdown = NormalizeBreakdown(local.Breakdown)
+                id = NormalizeText(rate.CustomRateId),
+                sectionKey = NormalizeText(rate.SectionKey).ToLowerInvariant(),
+                sectionLabel = NormalizeText(rate.SectionLabel),
+                title = NormalizeText(rate.Title),
+                description = NormalizeText(rate.Description),
+                unit = NormalizeText(rate.Unit),
+                netCost = Round(rate.NetCost),
+                overheadPercent = Round(rate.OverheadPercent),
+                profitPercent = Round(rate.ProfitPercent),
+                totalCost = Round(rate.TotalCost),
+                materials = NormalizeCustomLines(rate.Materials),
+                labour = NormalizeCustomLines(rate.Labour),
+                breakdown = NormalizeBreakdown(rate.Breakdown)
             });
 
-            var serverSignature = JsonSerializer.Serialize(new
-            {
-                id = NormalizeText(server.CustomRateId),
-                sectionKey = NormalizeText(server.SectionKey).ToLowerInvariant(),
-                sectionLabel = NormalizeText(server.SectionLabel),
-                title = NormalizeText(server.Title),
-                description = NormalizeText(server.Description),
-                unit = NormalizeText(server.Unit),
-                netCost = Round(server.NetCost),
-                overheadPercent = Round(server.OverheadPercent),
-                profitPercent = Round(server.ProfitPercent),
-                totalCost = Round(server.TotalCost),
-                materials = NormalizeCustomLines(server.Materials),
-                labour = NormalizeCustomLines(server.Labour),
-                breakdown = NormalizeBreakdown(server.Breakdown)
-            });
-
-            return string.Equals(localSignature, serverSignature, StringComparison.Ordinal);
-        }
+        internal static string Signature(CustomRate rate) => Signature(ToCustomRatePayload(rate));
 
         private static IEnumerable<object> NormalizeBreakdown(IEnumerable<BreakdownPayload>? lines)
         {
@@ -1106,14 +1331,12 @@ namespace ADLMRateGen.Services
 
         private sealed class UserRateSnapshot
         {
-            public UserRateSnapshot(List<RateOverridePayload> rateOverrides, List<CustomRatePayload> customRates)
+            public UserRateSnapshot(List<RateOverridePayload> rateOverrides)
             {
                 RateOverrides = rateOverrides;
-                CustomRates = customRates;
             }
 
             public List<RateOverridePayload> RateOverrides { get; }
-            public List<CustomRatePayload> CustomRates { get; }
         }
 
         private sealed class ServerLibraryState
@@ -1152,7 +1375,7 @@ namespace ADLMRateGen.Services
             public DateTime? SourceUpdatedAt { get; set; }
         }
 
-        private sealed class CustomRatePayload
+        internal sealed class CustomRatePayload
         {
             public string CustomRateId { get; set; } = string.Empty;
             public string SectionKey { get; set; } = string.Empty;
@@ -1171,7 +1394,7 @@ namespace ADLMRateGen.Services
             public DateTime? UpdatedAt { get; set; }
         }
 
-        private sealed class CustomRateLinePayload
+        internal sealed class CustomRateLinePayload
         {
             public string RateType { get; set; } = string.Empty;
             public string Description { get; set; } = string.Empty;
@@ -1184,7 +1407,7 @@ namespace ADLMRateGen.Services
             public string RefName { get; set; } = string.Empty;
         }
 
-        private sealed class BreakdownPayload
+        internal sealed class BreakdownPayload
         {
             public string ComponentName { get; set; } = string.Empty;
             public decimal Quantity { get; set; }
