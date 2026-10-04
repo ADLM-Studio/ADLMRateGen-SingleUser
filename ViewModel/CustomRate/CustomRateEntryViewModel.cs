@@ -373,6 +373,19 @@ namespace ADLMRateGen.ViewModel.CustomRate
                 CreatedDate    = IsEditing ? _currentRate.CreatedDate : DateTime.Now
             };
 
+            // An edited rate keeps its place in the cloud. Without CloudId a rate
+            // downloaded from the website would go back up as a new rate, and the
+            // original would come down again beside it.
+            if (IsEditing && _currentRate != null)
+            {
+                newRate.CloudId         = _currentRate.CloudId;
+                newRate.CloudUnit       = _currentRate.CloudUnit;
+                newRate.SectionKey      = _currentRate.SectionKey;
+                newRate.SectionLabel    = _currentRate.SectionLabel;
+                newRate.CloudUpdatedAt  = _currentRate.CloudUpdatedAt;
+                newRate.SyncedSignature = _currentRate.SyncedSignature;
+            }
+
             if (!IsEditing)
             {
                 newRate.Id = Guid.NewGuid();
