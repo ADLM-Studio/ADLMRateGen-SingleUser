@@ -1,5 +1,24 @@
 # ADLM Rate Gen — Release Notes
 
+## v3.1.0
+
+Everything in 3.0.1, plus Price a bill.
+
+### Price a bill
+
+Open any client's bill of quantities (.xlsx, or .xls on a PC with Excel), in
+their own layout. RateGen finds the description, unit and quantity columns, reads
+each item with the section and headings above it, and ADLM AI proposes one of
+your rates for each measured item, in the same unit only. Nothing is priced until
+you accept it: accept one line, accept every match ADLM AI is 85% or more sure of,
+or search for another rate. Lines with no good match stay unpriced and are listed.
+Totals by section and for the bill. Download Excel saves a copy in the client's
+layout with your rates and amounts filled in, a note on each rate naming the
+RateGen rate, and a summary sheet; the client's file is never changed. Steel
+billed by the kg is offered your per-tonne rates per kg.
+
+Saving a priced bill to ADLM Cloud and ICMS export come in a later release.
+
 ## v3.0.1
 
 Everything in 3.0.0, plus one fix to Saved Rates.
