@@ -47,6 +47,12 @@ namespace ADLMRateGen.Services
 			}
 		}
 
+		/// <summary>The AI service address (null when ADLM_AI_URL is "off"), for callers that post to it directly.</summary>
+		internal static string? ServiceUrl => AppEnvironment.AiServiceUrl;
+
+		/// <summary>The token the AI service accepts: ADLM_AI_TOKEN, else the signed-in licence token.</summary>
+		internal static string CurrentToken() => ResolveToken();
+
 		private static string ResolveToken()
 		{
 			var overrideTok = AppEnvironment.AiServiceTokenOverride;

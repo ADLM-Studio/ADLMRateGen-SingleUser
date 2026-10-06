@@ -16,6 +16,7 @@
         xmlns:windowAndDoor="clr-namespace:ADLMRateGen.ViewModel.WindowAndDoor"
         xmlns:paint="clr-namespace:ADLMRateGen.ViewModel.Painting"
         xmlns:carbon="clr-namespace:ADLMRateGen.ViewModel.CarbonOthers"
+        xmlns:billpricing="clr-namespace:ADLMRateGen.ViewModel.BillPricing"
         xmlns:steel="clr-namespace:ADLMRateGen.ViewModel.SteelWork"
         xmlns:customInput="clr-namespace:ADLMRateGen.ViewModel.CustomRate"
         xmlns:helpers="clr-namespace:ADLMRateGen.Helpers"
@@ -80,6 +81,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type steel:SteelWorkViewModel}">
                 <view:SteelworkView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type billpricing:BillPricingViewModel}">
+                <view:BillPricingView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type carbon:CarbonOthersViewModel}">
                 <view:CarbonOthersView />
@@ -337,6 +341,17 @@
                             </Button>
                             <TextBlock Style="{StaticResource SxRailHead}" Text="MORE" Margin="10,14,0,6"
                                        Visibility="{Binding DataContext.IsSidebarCollapsed, ElementName=Root, Converter={StaticResource InvBoolVis}}" />
+                            <Button Style="{StaticResource SxRailNav}"
+                                    Command="{Binding SelectedBillPricingViewCommand}"
+                                    helpers:ButtonHelper.IsActive="{Binding IsBillPricingActive}"
+                                    ToolTip="Price a client's bill with your rates">
+                                <DockPanel>
+                                    <ContentControl Style="{StaticResource SxIc}" Tag="{StaticResource Ic.Excel}" />
+                                    <TextBlock Text="Price a bill" Margin="10,0,0,0" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding DataContext.IsSidebarCollapsed, ElementName=Root, Converter={StaticResource InvBoolVis}}" />
+                                </DockPanel>
+                            </Button>
                             <Button Style="{StaticResource SxRailNav}"
                                     Command="{Binding SelectedCarbonOthersViewCommand}"
                                     helpers:ButtonHelper.IsActive="{Binding IsCarbonOthersActive}"
