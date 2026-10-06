@@ -17,7 +17,10 @@ layout with your rates and amounts filled in, a note on each rate naming the
 RateGen rate, and a summary sheet; the client's file is never changed. Steel
 billed by the kg is offered your per-tonne rates per kg.
 
-Saving a priced bill to ADLM Cloud and ICMS export come in a later release.
+Save to ADLM Cloud keeps the bill, priced and unpriced lines, as a RateGen
+project in your ADLM account; saving again from the same bill updates it. Each
+priced line keeps the RateGen rate that priced it. ICMS export comes in a later
+release.
 
 ## v3.0.1
 
