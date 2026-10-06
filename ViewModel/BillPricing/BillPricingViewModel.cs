@@ -46,6 +46,7 @@ namespace ADLMRateGen.ViewModel.BillPricing
             UseRateCommand = new RelayCommand(o => { if (o is BillRate r) SelectedLine?.Use(r); }, o => o is BillRate && SelectedLine?.IsPriceable == true);
             DownloadExcelCommand = new RelayCommand(async _ => await DownloadExcelAsync(), _ => Stage == BillStage.Review && PricedCount > 0);
             StartOverCommand = new RelayCommand(_ => StartOver(), _ => Stage == BillStage.Review);
+            SaveToCloudCommand = new RelayCommand(async _ => await SaveToCloudAsync(), _ => Stage == BillStage.Review && !_savingToCloud && ItemCount > 0);
             SetFilterCommand = new RelayCommand(o => Filter = o as string ?? "All");
         }
 
@@ -160,6 +161,13 @@ namespace ADLMRateGen.ViewModel.BillPricing
         public ICommand UseRateCommand { get; }
         public ICommand DownloadExcelCommand { get; }
         public ICommand StartOverCommand { get; }
+        public ICommand SaveToCloudCommand { get; }
+
+        // The ADLM Cloud project this bill was saved as: saving again updates it.
+        private string? _cloudProjectId;
+        private bool _savingToCloud;
+        /// <summary>"Save to ADLM Cloud", or "Save changes to ADLM Cloud" once it has been saved.</summary>
+        public string SaveToCloudLabel => _savingToCloud ? "Saving…" : _cloudProjectId == null ? "Save to ADLM Cloud" : "Save changes to ADLM Cloud";
         public ICommand SetFilterCommand { get; }
 
         private CancellationTokenSource? _cts;
@@ -193,6 +201,8 @@ namespace ADLMRateGen.ViewModel.BillPricing
             Notice = "";
             SelectedLine = null;
             _originalPath = path;
+            _cloudProjectId = null;
+            RaisePropertyChanged(nameof(SaveToCloudLabel));
             BillName = Path.GetFileName(path);
             Stage = BillStage.Working;
             Step = 0;
@@ -314,6 +324,63 @@ namespace ADLMRateGen.ViewModel.BillPricing
             RaisePropertyChanged(nameof(GrandTotal));
             if (_filter != "All") LinesView.Refresh();
             CommandManager.InvalidateRequerySuggested();
+        }
+
+        private async Task SaveToCloudAsync()
+        {
+            var lines = Lines.Where(l => l.IsPriceable).Select(l => new CloudBillLine
+            {
+                SheetName = l.SheetName,
+                Row = l.Row.Row,
+                ItemRef = l.ItemRef,
+                Section = l.Section,
+                Headings = l.Row.Headings.ToList(),
+                Description = l.Description,
+                Unit = l.Unit,
+                Qty = l.Qty,
+                Rate = l.Rate,
+            }).ToList();
+            var name = Path.GetFileNameWithoutExtension(_originalPath);
+            _savingToCloud = true;
+            RaisePropertyChanged(nameof(SaveToCloudLabel));
+            CommandManager.InvalidateRequerySuggested();
+            try
+            {
+                var wasSaved = _cloudProjectId != null;
+                var result = await BillCloudSaver.SaveAsync(name, lines, _cloudProjectId, CancellationToken.None);
+                _cloudProjectId = result.ProjectId;
+                var rows = new List<(string, string)>
+                {
+                    ("Project", name),
+                    ("Lines", $"{result.Lines} ({result.Priced} priced)"),
+                };
+                if (SuiteDialog.Ask(wasSaved ? "Changes saved to ADLM Cloud" : "Saved to ADLM Cloud",
+                        wasSaved
+                            ? "The project on ADLM Cloud now matches this bill."
+                            : "The bill is saved as a RateGen project in your ADLM account. Saving again from here updates the same project.",
+                        "Open in ADLM Cloud", "Close", SuiteDialog.Tone.Success, rows))
+                    Process.Start(new ProcessStartInfo(BillCloudSaver.WebUrl(result.ProjectId)) { UseShellExecute = true });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                SuiteDialog.Tell("Could not save to ADLM Cloud", ex.Message, SuiteDialog.Tone.Warning);
+            }
+            catch (InvalidOperationException)
+            {
+                SuiteDialog.Tell("Sign in to save to ADLM Cloud", "Your RateGen session has ended. Sign in again, then save.", SuiteDialog.Tone.Warning);
+            }
+            catch (Exception ex)
+            {
+                SuiteDialog.Tell("Could not save to ADLM Cloud",
+                    "Check your internet connection and try again. The priced bill is still here; nothing is lost.\n\n" + ex.Message,
+                    SuiteDialog.Tone.Danger);
+            }
+            finally
+            {
+                _savingToCloud = false;
+                RaisePropertyChanged(nameof(SaveToCloudLabel));
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
 
         private void StartOver()

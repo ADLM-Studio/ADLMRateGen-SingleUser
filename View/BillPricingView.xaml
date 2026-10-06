@@ -31,6 +31,13 @@
                         Visibility="{Binding IsReview, Converter={StaticResource BoolVis}}">
                 <Button Style="{StaticResource SxBtnGhost}" Content="Open another bill" Margin="0,0,10,0"
                         Command="{Binding StartOverCommand}" />
+                <Button Style="{StaticResource SxBtnGhost}" Command="{Binding SaveToCloudCommand}" Margin="0,0,10,0"
+                        ToolTip="Saves the bill, priced and unpriced lines, as a RateGen project in your ADLM account. Saving again updates the same project.">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Cloud}" Margin="0,0,8,0" />
+                        <TextBlock Text="{Binding SaveToCloudLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
                 <Button Style="{StaticResource SxBtn}" Command="{Binding DownloadExcelCommand}"
                         ToolTip="Saves a copy of the bill with the rates and amounts filled in. The client's file is not changed.">
                     <StackPanel Orientation="Horizontal">

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using ADLMRateGen.Services.Bill;
 using OfficeOpenXml;
 using Xunit;
@@ -202,6 +202,35 @@ namespace ADLMRateGen.Tests
             }
             finally { File.Delete(path); if (File.Exists(target)) File.Delete(target); }
         }
+
+        // ---- saving to ADLM Cloud --------------------------------------------------------
+
+        [Fact]
+        public void A_cloud_bill_carries_every_item_and_marks_only_accepted_rates()
+        {
+            var rate = Rates().First(r => r.Name.StartsWith("225mm"));
+            var when = new DateTime(2026, 10, 6, 13, 0, 0, DateTimeKind.Utc);
+            var items = BillCloudSaver.BuildItems(new[]
+            {
+                new CloudBillLine { SheetName = "Bill No. 2", Row = 4, Section = "BLOCKWORK", Headings = new[] { "Sandcrete blocks (1:6)" },
+                                    Description = "225mm hollow block walls", Unit = "m2", Qty = 120.5m, Rate = rate },
+                new CloudBillLine { SheetName = "Bill No. 2", Row = 5, Section = "BLOCKWORK", Description = "150mm ditto", Unit = "m2", Qty = 40m },
+            }, when);
+
+            Assert.Equal(2, items.Count);
+            Assert.Equal(23500d, items[0]["rate"]);
+            Assert.Equal("225mm blockwall in cement and sand mortar (1:6)", items[0]["appliedRateKey"]);
+            Assert.Equal(when.ToString("o"), items[0]["rateLockedAt"]);
+            Assert.Equal("BLOCKWORK", items[0]["category"]);
+            Assert.Equal("Sandcrete blocks (1:6)", items[0]["takeoffLine"]);
+            Assert.Equal(0d, items[1]["rate"]);
+            Assert.False(items[1].ContainsKey("rateLockedAt"));
+            Assert.NotEqual(items[0]["code"], items[1]["code"]);
+        }
+
+        [Fact]
+        public void A_bill_row_always_gets_the_same_cloud_code()
+            => Assert.Equal(BillCloudSaver.Code("Bill No. 2", 4), BillCloudSaver.Code("Bill No. 2", 4));
 
         [Fact]
         public void The_original_is_never_the_target()
