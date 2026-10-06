@@ -47,7 +47,10 @@ namespace ADLMRateGen.Services
             foreach (var line in def.lines ?? new List<ComputeLine>())
             {
                 var kind = (line.kind ?? "").Trim().ToLowerInvariant();
-                var name = (line.description ?? "").Trim();
+                // Price from the library row the line names (refName). The
+                // description is display text ("PPR pipe 15mm incl. 5% waste")
+                // and matches nothing, which priced those lines at zero.
+                var name = (string.IsNullOrWhiteSpace(line.refName) ? line.description : line.refName)?.Trim() ?? "";
                 var unit = (line.unit ?? "").Trim();
 
                 var qty = line.qtyPerUnit;

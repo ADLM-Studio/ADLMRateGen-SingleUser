@@ -1,4 +1,5 @@
-﻿using ADLMRateGen.Command;
+﻿using System.Collections.Generic;
+using ADLMRateGen.Command;
 using ADLMRateGen.Helpers;
 using ADLMRateGen.Services;
 using System.Collections.ObjectModel;
@@ -212,6 +213,22 @@ namespace ADLMRateGen.ViewModel.CustomRate
         public bool IsAiAvailable => AiRateService.Instance.IsConfigured;
 
         public ICommand BuildWithAiCommand { get; private set; }
+
+        /// <summary>The AI draft's stages, named as it works (Richard's loading system).</summary>
+        public IList<string> AiSteps { get; } = new[]
+        {
+            "Reading your sentence",
+            "Asking ADLM AI for a build-up",
+            "Filling in materials and labour",
+            "Checking it against ADLM's rules",
+        };
+
+        private int _aiStep;
+        public int AiStep
+        {
+            get => _aiStep;
+            set { _aiStep = value; RaisePropertyChanged(); }
+        }
 
         public ICommand AddMaterialItemCommand { get; }
         public ICommand AddLabourItemCommand { get; }
@@ -483,8 +500,9 @@ namespace ADLMRateGen.ViewModel.CustomRate
                 return;
             }
 
+            AiStep = 1;
             IsAiBusy = true;
-            AiStatus = "Building rate with ADLM AI…";
+            AiStatus = "";
             SetAiWarnings(null);
             try
             {
@@ -497,6 +515,7 @@ namespace ADLMRateGen.ViewModel.CustomRate
                     return;
                 }
 
+                AiStep = 2;
                 var rate = result.Rate;
                 StartNewRate();            // clears the form, and the warnings with it
                 RateName = rate.Title;
@@ -520,7 +539,9 @@ namespace ADLMRateGen.ViewModel.CustomRate
                 }
 
                 // Set after StartNewRate, which clears them.
+                AiStep = 3;
                 SetAiWarnings(result.Warnings);
+                AiStep = 4;
 
                 var confidence = result.Confidence.HasValue
                     ? $" (confidence {result.Confidence.Value:P0})"

@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\ADLM Rate Generator Plugin.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- v2.6.2: The library merge no longer keys on the material/labour name.
          Keying threw on the first duplicate — and the shipped defaults carry
          500 rows for 477 names — so harvesting on save silently did nothing,
@@ -30,9 +31,9 @@
          day rate against an hourly quantity, fuel priced off the labourer rate at
          30 sites, and the tonne/m3 unit mismatch on aggregates. Minor rather than
          patch because every computed rate in the product changes. -->
-    <Version>2.9.2</Version>
-    <AssemblyVersion>2.9.2.0</AssemblyVersion>
-    <FileVersion>2.9.2.0</FileVersion>
+    <Version>3.0.0</Version>
+    <AssemblyVersion>3.0.0.0</AssemblyVersion>
+    <FileVersion>3.0.0.0</FileVersion>
   </PropertyGroup>
 
   <!-- The test project lives under this project's directory, so the SDK's
@@ -86,6 +87,10 @@
     <Content Include="Data\labourSpecs.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Carbon factors behind the carbon rates: every value carries its source. -->
+    <Content Include="Data\carbonFactors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Data\defaultMaterials.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -102,6 +107,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\ADLMRate.ico" />
+    <!-- The suite banner: RateGen's badge and artwork, from the design repo. -->
+    <Resource Include="Resources\Suite\ic-rategen.png" />
+    <Resource Include="Resources\Suite\sp-rategen.jpg" />
+    <Resource Include="Resources\Suite\wm-rategen.png" />
+    <Resource Include="Resources\Suite\bg-rategen.jpg" />
     <Resource Include="Resources\adlm_badge.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>

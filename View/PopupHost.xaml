@@ -11,7 +11,7 @@
 
     <Grid>
         <!-- dim background -->
-        <Rectangle Fill="#88000000"
+        <Rectangle Fill="{DynamicResource SxVeil}"
                    MouseDown="OnBackgroundClicked" />
 
         <!-- popup card — transparent wrapper, child views provide their own styling -->
@@ -31,7 +31,8 @@
 
                 <Grid>
                     <!-- close button floats on top-right -->
-                    <Button Content="&#x2715;"
+                    <Button x:Name="HostClose"
+                            Content="&#x2715;"
                             Width="36"
                             Height="36"
                             FontSize="18"

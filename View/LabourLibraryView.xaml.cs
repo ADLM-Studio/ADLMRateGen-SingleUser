@@ -25,6 +25,7 @@ namespace ADLMRateGen.View
         public LabourLibraryView()
         {
             InitializeComponent();
+            WireSuite();
 
 			//// once DataContext is set, hook the edit request
 			//this.Loaded += (s, e) =>
@@ -91,5 +92,30 @@ namespace ADLMRateGen.View
 				.ShowPopup(new LabourPriceView { DataContext = editVm });
 		}
 
+
+		/* ---------- suite table: sort, open, reflow, empty ---------------------------- */
+
+		private System.ComponentModel.ICollectionView? View =>
+			LabourGrid?.ItemsSource as System.ComponentModel.ICollectionView
+			?? ((LabourGrid?.ItemsSource is System.Collections.IEnumerable e) ? CollectionViewSource.GetDefaultView(e) : null);
+
+		private void SortBox_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+			Suite.LibraryTable.Sort(View, SortBox.SelectedIndex, "LabourPrice", "LabourName");
+
+		private void Grid_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) =>
+			Suite.LibraryTable.OpenRowUnder(e, LabourGrid, DataContext, "EditLabourCommand");
+
+		private void Grid_PreviewKeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key != Key.Enter) return;
+			Suite.LibraryTable.Run(DataContext, "EditLabourCommand", LabourGrid.SelectedItem);
+			e.Handled = true;
+		}
+
+		private void WireSuite()
+		{
+			SizeChanged += (_, e) => Suite.LibraryTable.Reflow(e.NewSize.Width, Bar, FindBox, CategoryBox, SortBox, UpdateButton);
+			Loaded += (_, __) => Suite.LibraryTable.WatchEmpty(View, None, "labour");
+		}
 	}
 }

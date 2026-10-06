@@ -3,207 +3,126 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:fa="clr-namespace:FontAwesome.Sharp;assembly=FontAwesome.Sharp"
              mc:Ignorable="d"
              d:DesignHeight="600"
              d:DesignWidth="1000">
-
-
-    <!-- ───────── Layout ───────── -->
-    <Border BorderBrush="{DynamicResource PrimaryBrush}"
-            BorderThickness="1"
-            CornerRadius="12"
-            Padding="12"
-            Background="{DynamicResource MainBg}">
-
-        <Grid Margin="10">
+    <!-- The material library on the suite's card, bar and table (Richard's design,
+         30 Sep 2026): the same find / filter / sort bar and the same table as the
+         trade screens, so the library and the rates built from it read as one
+         product. Click a row, or press Enter, to edit it; right-click or Delete
+         for the rest. -->
+    <Border Style="{StaticResource SxPanel}">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Toolbar -->
-            <Border Grid.Row="0"
-                    Background="{DynamicResource LightGrayBrush}"
-                    CornerRadius="6"
-                    Padding="8"
-                    Margin="0,0,0,16">
+            <!-- Bar: find, category, sort, then the one library-wide action -->
+            <Grid x:Name="Bar" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="180" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <Grid VerticalAlignment="Center"
-                      Margin="10,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.5*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <Border x:Name="FindBox" Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                    <DockPanel>
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Search}"
+                                        Foreground="{DynamicResource SxInk3}" Margin="0,0,8,0" />
+                        <TextBox Style="{StaticResource SxBare}" Tag="Search the material library"
+                                 Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}" />
+                    </DockPanel>
+                </Border>
+                <ComboBox x:Name="CategoryBox" Grid.Column="1" HorizontalAlignment="Left" Style="{StaticResource SxSelect}" MinWidth="150" MaxWidth="260"
+                          Margin="0,0,10,0" ToolTip="Show one category"
+                          ItemsSource="{Binding MaterialCategory}"
+                          SelectedItem="{Binding SelectedMaterialCategory, Mode=TwoWay}" />
+                <ComboBox x:Name="SortBox" Grid.Column="2" Style="{StaticResource SxSelect}" Margin="0,0,10,0"
+                          SelectedIndex="0" SelectionChanged="SortBox_SelectionChanged" ToolTip="Order the table">
+                    <ComboBoxItem Content="Sort by · library order" />
+                    <ComboBoxItem Content="Sort by · most expensive" />
+                    <ComboBoxItem Content="Sort by · A to Z" />
+                </ComboBox>
+                <Button x:Name="UpdateButton" Grid.Column="3" Style="{StaticResource SxBtnGhost}"
+                        Command="{Binding UpdatePricesCommand}"
+                        ToolTip="Bring this library's prices up to date from ADLM. Your own prices are offered, not overwritten.">
+                    <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Refresh}" Margin="0,0,8,0" />
+                        <TextBlock Text="Update prices" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
 
-                    <!-- Search -->
-                    <Grid Grid.Column="0">
-                        <TextBox Style="{StaticResource HollowBox}"
-                                 Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="32,0,48,0" />
-                        <!-- icon -->
-                        <fa:IconBlock Icon="Search"
-                                      Width="24"
-                                      Height="24"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Left"
-                                      Margin="8,8,0,0"
-                                      Foreground="{DynamicResource BorderBrushLight}"
-                                      Panel.ZIndex="1" />
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DataGrid x:Name="MaterialGrid" MinWidth="760" Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Style="{StaticResource SxTable}"
+                          ItemsSource="{Binding MaterialCollectionView}"
+                          Tag="{Binding}"
+                          PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp"
+                          PreviewKeyDown="Grid_PreviewKeyDown">
+                    <DataGrid.InputBindings>
+                        <KeyBinding Key="Delete"
+                                    Command="{Binding DataContext.DeleteMaterialCommand, ElementName=MaterialGrid}"
+                                    CommandParameter="{Binding SelectedItem, ElementName=MaterialGrid}" />
+                    </DataGrid.InputBindings>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource SxTableRow}">
+                            <!-- the view model rides on the row, for the context menu -->
+                            <Setter Property="Tag"
+                                    Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                            <Setter Property="ContextMenu">
+                                <Setter.Value>
+                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                        <MenuItem Header="Edit"
+                                                  Command="{Binding PlacementTarget.Tag.EditMaterialCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding}" />
+                                        <Separator />
+                                        <MenuItem Header="Delete"
+                                                  Command="{Binding PlacementTarget.Tag.DeleteMaterialCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding}" />
+                                    </ContextMenu>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="S/N" Binding="{Binding SerialNumber}" Width="56"
+                                            ElementStyle="{StaticResource SxCellMuted}" />
+                        <DataGridTemplateColumn Header="MATERIAL NAME" SortMemberPath="MaterialName" Width="2*" MinWidth="220">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource SxCellDesc}" Text="{Binding MaterialName}"
+                                               ToolTip="{Binding MaterialName}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="UNIT" Binding="{Binding MaterialUnit}" Width="80"
+                                            ElementStyle="{StaticResource SxCellUnit}" />
+                        <DataGridTextColumn Header="PRICE" Width="Auto" MinWidth="130"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding MaterialPrice, Converter={StaticResource MoneyConv}, Mode=OneWay}"
+                                            ElementStyle="{StaticResource SxCellNumB}" />
+                        <DataGridTemplateColumn Header="CATEGORY" Width="*" MinWidth="160">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource SxCellUnit}" Margin="16,0,0,0"
+                                               TextTrimming="CharacterEllipsis" Text="{Binding MaterialCategory}"
+                                               ToolTip="{Binding MaterialCategory}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ScrollViewer>
 
-                        <TextBlock Text="⌘F"
-                                   VerticalAlignment="Center"
-                                   HorizontalAlignment="Right"
-                                   Margin="0,0,8,0"
-                                   Foreground="{DynamicResource BorderBrushLight}" />
-                    </Grid>
-
-                    <!-- Filter -->
-                    <ComboBox Grid.Column="1"
-                              ItemsSource="{Binding MaterialCategory}"
-                              SelectedItem="{Binding SelectedMaterialCategory, Mode=TwoWay}"
-                              Style="{StaticResource TopNavComboBoxStyle}"
-                              Width="100"
-                              Margin="12,0" />
-
-                    <!-- Sort by -->
-                    <Button Grid.Column="2"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Content="Sort by ▼"
-                            Width="100"
-                            Margin="0,0,12,0" />
-
-                    <!-- Spacer -->
-                    <Rectangle Grid.Column="3"
-                               Fill="Transparent" />
-
-                    <!-- Update -->
-                    <Button Grid.Column="4"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Command="{Binding UpdatePricesCommand}"
-                            Content="Update Prices"
-                            Width="150"/>
-                </Grid>
-            </Border>
-            
-            <DataGrid x:Name="MaterialsGrid"
-                      Grid.Row="1"
-                      ItemsSource="{Binding MaterialCollectionView}"
-                      Style="{StaticResource DataGridStyle}"
-                      Tag="{Binding}">
-                <!-- << store the VM here -->
-                <DataGrid.InputBindings>
-                    <KeyBinding Key="Delete"
-                                Command="{Binding DataContext.DeleteMaterialCommand, ElementName=MaterialsGrid}"
-                                CommandParameter="{Binding SelectedItem, ElementName=MaterialsGrid}" />
-                </DataGrid.InputBindings>
-                
-
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow">
-                        <!-- put the VM onto the row itself -->
-                        <Setter Property="Tag"
-                                Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
-                        <Setter Property="ContextMenu">
-                            <Setter.Value>
-                                <!-- row item is DataContext -->
-                                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                    <MenuItem Header="Edit"
-                                              Command="{Binding PlacementTarget.Tag.EditMaterialCommand,
-                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="{Binding}" />
-                                    <Separator />
-                                    <MenuItem Header="Delete"
-                                              Command="{Binding PlacementTarget.Tag.DeleteMaterialCommand,
-                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="{Binding}" />
-                                </ContextMenu>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </DataGrid.RowStyle>
-                <DataGrid.Columns>
-                    
-                    <DataGridTextColumn Header="S/N"
-                                        Binding="{Binding SerialNumber}"
-                                        Width="60" >
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment"
-                                        Value="Center" />
-                                <Setter Property="VerticalAlignment"
-                                        Value="Center" />
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-
-                    <DataGridTemplateColumn Header="Material Name"
-                                            SortMemberPath="MaterialName"
-                                            Width="*">
-
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding MaterialName}"
-                                           TextTrimming="CharacterEllipsis"
-                                           FontFamily="{StaticResource PoppinsFont}"
-                                           Foreground="{DynamicResource Blue900Brush}">
-                                    <TextBlock.InputBindings>
-                                        <MouseBinding MouseAction="LeftClick"
-                                                      Command="{Binding DataContext.EditMaterialCommand,
-                  RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                      CommandParameter="{Binding}" />
-                                    </TextBlock.InputBindings>
-                                </TextBlock>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-
-                    </DataGridTemplateColumn>
-
-
-                    <DataGridTextColumn Header="Material Unit"
-                                        Binding="{Binding MaterialUnit}"
-                                        Width="120">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment"
-                                        Value="Center" />
-                                <Setter Property="VerticalAlignment"
-                                        Value="Center" />
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn Header="Price"
-                                        Binding="{Binding MaterialPrice, Converter={StaticResource MoneyConv},Mode=OneWay, StringFormat=N0}"
-                                        Width="150">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment"
-                                        Value="Left" />
-                                <Setter Property="VerticalAlignment"
-                                        Value="Center" />
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-
-                    <DataGridTextColumn Header="Category"
-                                        Binding="{Binding MaterialCategory}"
-                                        Width="*">
-                        <DataGridTextColumn.ElementStyle>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="HorizontalAlignment"
-                                        Value="Center" />
-                                <Setter Property="VerticalAlignment"
-                                        Value="Center" />
-                            </Style>
-                        </DataGridTextColumn.ElementStyle>
-                    </DataGridTextColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+            <!-- Empty is a state -->
+            <TextBlock x:Name="None" Grid.Row="1" Style="{StaticResource SxNone}" VerticalAlignment="Top"
+                       Margin="0,56,0,0" Visibility="Collapsed" />
         </Grid>
     </Border>
 </UserControl>

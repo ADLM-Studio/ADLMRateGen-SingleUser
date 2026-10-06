@@ -1,4 +1,4 @@
-using ADLMRateGen.ADLM.Auth;
+﻿using ADLMRateGen.ADLM.Auth;
 using ADLMRateGen.ViewModel;
 using System;
 using System.Threading;
@@ -28,7 +28,7 @@ namespace ADLMRateGen.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[RateEditCommands.SaveAsync] Local save failed: {ex.Message}");
-                MessageBox.Show(
+                ADLMRateGen.Helpers.AppMessage.Show(
                     "Your changes could not be saved locally. Please try again.",
                     "Save Failed",
                     MessageBoxButton.OK,
@@ -51,7 +51,7 @@ namespace ADLMRateGen.Services
             {
                 System.Diagnostics.Debug.WriteLine($"[RateEditCommands.SaveAsync] Cloud push failed: {ex.Message}");
                 // Local save already succeeded — surface a soft warning, don't block.
-                MessageBox.Show(
+                ADLMRateGen.Helpers.AppMessage.Show(
                     "Your edits were saved on this device, but couldn't sync to the cloud right now. " +
                     "They'll sync automatically the next time you're connected.",
                     "Cloud Sync Pending",

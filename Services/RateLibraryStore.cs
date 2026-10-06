@@ -25,6 +25,10 @@ namespace ADLMRateGen.Services
         public static IReadOnlyList<RateDefinition> Items { get; private set; }
             = Array.Empty<RateDefinition>();
 
+        // Trades refresh their sections concurrently at start-up; the cache is
+        // read, merged and written under this, so two refreshes cannot interleave.
+        private static readonly object CacheGate = new();
+
         public static string FilePath =>
             Path.Combine(UserLibrarySync.UserDataFolder, "rate-library.json");
 
@@ -207,11 +211,34 @@ namespace ADLMRateGen.Services
 
                 LastApiItemCount = all.Count;
                 LastApiSyncUtc = DateTime.UtcNow;
-                LastApiMessage = $"Rate library OK. Items={all.Count}. Saved to disk.";
+
+                // A section-scoped refresh (each trade asks for its own on open)
+                // replaces that section only. Saving it as the whole file used to
+                // wipe every other trade's rates from the cache until the next full
+                // sync: the last trade to refresh won, and the rest showed empty.
+                lock (CacheGate)
+                {
+                var toSave = all;
+                if (!string.IsNullOrWhiteSpace(sectionKey))
+                {
+                    var section = sectionKey.Trim();
+                    ReloadFromDisk();
+                    toSave = Items
+                        .Where(x => x != null && !string.Equals((x.SectionKey ?? "").Trim(), section, StringComparison.OrdinalIgnoreCase))
+                        .Concat(all)
+                        .GroupBy(x => x.Id)
+                        .Select(g => g.Last())
+                        .ToList();
+                }
+
+                LastApiMessage = string.IsNullOrWhiteSpace(sectionKey)
+                    ? $"Rate library OK. Items={all.Count}. Saved to disk."
+                    : $"Rate library OK. Items={all.Count} in '{sectionKey}', {toSave.Count} cached in all. Saved to disk.";
 
                 Debug.WriteLine($"[RateLibrary] SUCCESS: {LastApiMessage}");
 
-                SaveToDisk(all);
+                SaveToDisk(toSave);
+                }
                 return true;
             }
             catch (TaskCanceledException ex)

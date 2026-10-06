@@ -1,0 +1,675 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:helpers="clr-namespace:ADLMRateGen.Helpers">
+    <!-- The suite's controls, drawn once (Richard's design, 30 Sep 2026,
+         ADLMWebNewUI site/assets/css/rategen-app.css and adlm-ui.css).
+
+         Shell: the inset rail, the 56px top bar, 10px nav rows, the action blue,
+         18px cards and one table treatment - the same as HERON and the Hub.
+         Spacing is the kit's scale: 6 / 10 / 16 / 24 / 36, card padding 20,
+         screen padding 22. Colours come only from the Sx* brushes in the two
+         theme files, always as DynamicResource, so light and dark swap together. -->
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/ADLMRateGen;component/Resources/Suite/SuiteArt.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- RateGen needs a few glyphs the suite set does not carry yet. Drawn to the
+         same rules (24x24, strokes only) so they sit beside it unnoticed; they
+         belong upstream in adlm-icons.js. -->
+    <Geometry x:Key="Ic.Sun">M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM12 2.5v2M12 19.5v2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4</Geometry>
+    <Geometry x:Key="Ic.Keyboard">M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1ZM7 10h.01M11 10h.01M15 10h.01M7 14h10</Geometry>
+    <Geometry x:Key="Ic.Eye">M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z</Geometry>
+    <Geometry x:Key="Ic.Folder">M4 6a2 2 0 0 1 2-2h3l2 2.5h7a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z</Geometry>
+    <Geometry x:Key="Ic.Spark">M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5</Geometry>
+
+    <!-- The four services, split the way a bill is -->
+    <Geometry x:Key="Ic.Mechanical">M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM12 10c0-3.5 1-6.5 3.5-6.5 2 0 2.2 3 .3 4.8M14 12c3.5 0 6.5 1 6.5 3.5 0 2-3 2.2-4.8.3M12 14c0 3.5-1 6.5-3.5 6.5-2 0-2.2-3-.3-4.8M10 12c-3.5 0-6.5-1-6.5-3.5 0-2 3-2.2 4.8-.3</Geometry>
+    <Geometry x:Key="Ic.Electrical">M13 2.5 4.5 14h7l-1 7.5L19 10h-7l1-7.5Z</Geometry>
+    <Geometry x:Key="Ic.Plumbing">M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11ZM9.5 15a2.5 2.5 0 0 0 2.5 2.5</Geometry>
+    <Geometry x:Key="Ic.Fire">M12 21a6 6 0 0 0 6-6c0-4-3-6-4-10-2 2-3 4-3 6-1-1-1.5-2-1.5-3C7 10 6 12.5 6 15a6 6 0 0 0 6 6Z</Geometry>
+
+    <FontFamily x:Key="SxFont">pack://application:,,,/Resources/Fonts/#Lexend</FontFamily>
+    <CornerRadius x:Key="SxRBtn">10</CornerRadius>
+
+    <!-- ─── Icon: Tag = one of the Ic.* geometries; colour follows Foreground ─── -->
+    <Style x:Key="SxIc" TargetType="ContentControl">
+        <Setter Property="Width" Value="17" />
+        <Setter Property="Height" Value="17" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Viewbox Stretch="Uniform">
+                        <Canvas Width="24" Height="24">
+                            <Path Data="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="1.7"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round" Fill="{x:Null}" />
+                        </Canvas>
+                    </Viewbox>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxIcSm" TargetType="ContentControl" BasedOn="{StaticResource SxIc}">
+        <Setter Property="Width" Value="15" />
+        <Setter Property="Height" Value="15" />
+    </Style>
+
+    <!-- ─── Type ─── -->
+    <Style x:Key="SxText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+    </Style>
+    <Style x:Key="SxH1" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style x:Key="SxH2" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style x:Key="SxH3" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style x:Key="SxLede" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk2}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,5,0,0" />
+    </Style>
+    <Style x:Key="SxMuted" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style x:Key="SxLabel" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk2}" />
+        <Setter Property="Margin" Value="0,0,0,5" />
+    </Style>
+    <Style x:Key="SxNone" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,24" />
+    </Style>
+
+    <!-- ─── Surfaces ─── -->
+    <Style x:Key="SxPanel" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SxBg}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+    <Style x:Key="SxSheet" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SxBg}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="60" ShadowDepth="18" Direction="270" Color="#04101F" Opacity="0.35" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Footer strip of a sheet: bg-alt, hairline above, rounded to the sheet's bottom corners -->
+    <Style x:Key="SxSheetFoot" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SxBgAlt}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="CornerRadius" Value="0,0,19,19" />
+        <Setter Property="Padding" Value="24,16" />
+    </Style>
+
+    <!-- ─── Buttons ─── -->
+    <Style x:Key="SxBtn" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SxActionInk}" />
+        <Setter Property="Background" Value="{DynamicResource SxActionGrad}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="16,9" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10" Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.92" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.82" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource SxAction}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxBtnGhost" TargetType="Button" BasedOn="{StaticResource SxBtn}">
+        <Setter Property="Background" Value="{DynamicResource SxBg}" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+    </Style>
+    <Style x:Key="SxBtnSm" TargetType="Button" BasedOn="{StaticResource SxBtn}">
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="FontSize" Value="12.5" />
+    </Style>
+    <Style x:Key="SxBtnGhostSm" TargetType="Button" BasedOn="{StaticResource SxBtnGhost}">
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="FontSize" Value="12.5" />
+    </Style>
+    <!-- "Add Custom Rate +" -->
+    <Style x:Key="SxBtnAdd" TargetType="Button" BasedOn="{StaticResource SxBtn}">
+        <Setter Property="Padding" Value="18,10" />
+    </Style>
+
+    <!-- Flat hover-only button: base for icons, rail rows and text links -->
+    <Style x:Key="SxFlat" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk2}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Tag" Value="{DynamicResource SxBgAlt}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            CornerRadius="9" Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                            <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- 32px top-bar icon button -->
+    <Style x:Key="SxIconBtn" TargetType="Button" BasedOn="{StaticResource SxFlat}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+    </Style>
+    <!-- Back / close on a sheet: 32px, bg-alt -->
+    <Style x:Key="SxSheetBtn" TargetType="Button" BasedOn="{StaticResource SxFlat}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Background" Value="{DynamicResource SxBgAlt}" />
+        <Setter Property="Tag" Value="{DynamicResource SxBgInset}" />
+        <Setter Property="FontSize" Value="19" />
+    </Style>
+    <!-- 26px delete ×; hover goes orange -->
+    <Style x:Key="SxDel" TargetType="Button" BasedOn="{StaticResource SxFlat}">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+        <Setter Property="Tag" Value="{DynamicResource SxAccentTint}" />
+        <Setter Property="Content" Value="×" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource SxAccent}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ─── Rail ─── -->
+    <!-- Library: the one filled row at the top of the rail -->
+    <Style x:Key="SxRailLib" TargetType="Button" BasedOn="{StaticResource SxFlat}">
+        <Setter Property="Background" Value="{DynamicResource SxAction}" />
+        <Setter Property="Foreground" Value="{DynamicResource SxActionInk}" />
+        <Setter Property="Tag" Value="{DynamicResource SxAction}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="10,9" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,0,0,14" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource SxActionInk}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <!-- A trade row. helpers:ButtonHelper.IsActive marks the open one. -->
+    <Style x:Key="SxRailNav" TargetType="Button" BasedOn="{StaticResource SxFlat}">
+        <Setter Property="Tag" Value="{DynamicResource SxBg}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="10,9" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Style.Triggers>
+            <Trigger Property="helpers:ButtonHelper.IsActive" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SxAction}" />
+                <Setter Property="Tag" Value="{DynamicResource SxAction}" />
+                <Setter Property="Foreground" Value="{DynamicResource SxActionInk}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="helpers:ButtonHelper.IsActive" Value="True" />
+                    <Condition Property="IsMouseOver" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter Property="Foreground" Value="{DynamicResource SxActionInk}" />
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+    <!-- To CM App / Help / Log out -->
+    <Style x:Key="SxRailFoot" TargetType="Button" BasedOn="{StaticResource SxFlat}">
+        <Setter Property="Tag" Value="{DynamicResource SxBg}" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+    <Style x:Key="SxRailHead" TargetType="TextBlock" BasedOn="{StaticResource SxText}">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+        <Setter Property="Margin" Value="10,4,0,6" />
+    </Style>
+
+    <!-- ─── Inputs ─── -->
+    <!-- The outlined field: border line-2, radius 10, focus ring in action blue.
+         Tag carries the placeholder. -->
+    <Style x:Key="SxField" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource SxInk}" />
+        <Setter Property="Background" Value="{DynamicResource SxBg}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="16,11" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10" SnapsToDevicePixels="True">
+                        <!-- TextBox applies Padding to its own text itself; only the
+                             placeholder needs it here (plus the caret's 2px). -->
+                        <Grid>
+                            <TextBlock x:Name="Ph" Text="{TemplateBinding Tag}" Padding="{TemplateBinding Padding}" Margin="2,0,0,0"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       Foreground="{DynamicResource SxInk3}"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       IsHitTestVisible="False" Visibility="Collapsed" />
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Ph" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource SxAction}" />
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SxBgAlt}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxFieldSm" TargetType="TextBox" BasedOn="{StaticResource SxField}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="11,8" />
+    </Style>
+    <Style x:Key="SxFieldNum" TargetType="TextBox" BasedOn="{StaticResource SxFieldSm}">
+        <Setter Property="TextAlignment" Value="Right" />
+    </Style>
+    <!-- Borderless input that lives inside a composed box (search, %) -->
+    <Style x:Key="SxBare" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource SxInk}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid Background="Transparent">
+                        <TextBlock x:Name="Ph" Text="{TemplateBinding Tag}"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   Foreground="{DynamicResource SxInk3}"
+                                   VerticalAlignment="Center" IsHitTestVisible="False"
+                                   Visibility="Collapsed" />
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Ph" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- The box a bare input sits in -->
+    <Style x:Key="SxBox" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+        <Setter Property="Background" Value="{DynamicResource SxBg}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource SxAction}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ─── Select (sort) ─── -->
+    <Style x:Key="SxSelectItem" TargetType="ComboBoxItem">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SxBgInset}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxSelect" TargetType="ComboBox">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+        <Setter Property="Background" Value="{DynamicResource SxBg}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource SxSelectItem}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bd" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                            BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                            BorderThickness="1" CornerRadius="10" Padding="12,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Path Grid.Column="1" Data="M0,0 L4.5,4.5 L9,0" Margin="10,0,0,0"
+                                                  Stroke="{DynamicResource SxInk3}" StrokeThickness="1.6"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                  VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource SxInk3}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter Margin="13,8,32,8" IsHitTestVisible="False"
+                                          VerticalAlignment="Center" HorizontalAlignment="Left"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                        <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
+                               Placement="Bottom" AllowsTransparency="True" Focusable="False"
+                               PopupAnimation="Fade" VerticalOffset="4">
+                            <Border Background="{DynamicResource SxBg}" BorderBrush="{DynamicResource SxLine2}"
+                                    BorderThickness="1" CornerRadius="10" Padding="4"
+                                    MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="24" ShadowDepth="6" Direction="270" Opacity="0.18" />
+                                </Border.Effect>
+                                <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}" VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ─── Segmented control (Material | Labour): a RadioButton per segment,
+         the chosen one lifted onto bg with the action colour. ─── -->
+    <Style x:Key="SxSegment" TargetType="RadioButton">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk2}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SxBg}" />
+                            <Setter Property="Foreground" Value="{DynamicResource SxAction}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="Bd" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.10" />
+                                </Setter.Value>
+                            </Setter>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ─── The one table ───
+         Uppercase 11px headers in ink-3 over a line-2 rule, hairline rows,
+         bg-inset on hover, no grid lines, no zebra. -->
+    <Style x:Key="SxTableHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine2}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxTableHeaderRight" TargetType="DataGridColumnHeader" BasedOn="{StaticResource SxTableHeader}">
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+    <Style x:Key="SxTableCell" TargetType="DataGridCell">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="Transparent" Padding="10,11">
+                        <ContentPresenter VerticalAlignment="Top" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxTableRow" TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SxLine}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridRow">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                        <DataGridCellsPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SxBgInset}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SxBgInset}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SxTable" TargetType="DataGrid">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="RowBackground" Value="Transparent" />
+        <Setter Property="AlternatingRowBackground" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="GridLinesVisibility" Value="None" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="CanUserDeleteRows" Value="False" />
+        <Setter Property="CanUserResizeRows" Value="False" />
+        <Setter Property="CanUserReorderColumns" Value="False" />
+        <Setter Property="CanUserSortColumns" Value="False" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="SelectionMode" Value="Single" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="RowHeaderWidth" Value="0" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource SxTableHeader}" />
+        <Setter Property="CellStyle" Value="{StaticResource SxTableCell}" />
+        <Setter Property="RowStyle" Value="{StaticResource SxTableRow}" />
+        <Setter Property="EnableRowVirtualization" Value="True" />
+        <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel" />
+    </Style>
+    <Style x:Key="SxCell" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource SxFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource SxInk}" />
+    </Style>
+    <Style x:Key="SxCellMuted" TargetType="TextBlock" BasedOn="{StaticResource SxCell}">
+        <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+    </Style>
+    <Style x:Key="SxCellUnit" TargetType="TextBlock" BasedOn="{StaticResource SxCell}">
+        <Setter Property="Foreground" Value="{DynamicResource SxInk2}" />
+    </Style>
+    <Style x:Key="SxCellNum" TargetType="TextBlock" BasedOn="{StaticResource SxCell}">
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    </Style>
+    <Style x:Key="SxCellNumB" TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <!-- Two lines, then an ellipsis; the full text is on the tooltip -->
+    <Style x:Key="SxCellDesc" TargetType="TextBlock" BasedOn="{StaticResource SxCell}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="LineHeight" Value="19" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+        <Setter Property="MaxHeight" Value="38" />
+        <Setter Property="MaxWidth" Value="620" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+</ResourceDictionary>

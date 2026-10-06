@@ -7,165 +7,154 @@
              mc:Ignorable="d"
              d:DesignHeight="720"
              d:DesignWidth="1280">
+    <!-- Saved Custom Rates (Richard's design, 30 Sep 2026: savedScreen() in
+         rategen-app.js). Same head, bar and table as View/Suite/TradeScreen.xaml.
 
-    <!-- ───────── LAYOUT ───────── -->
-    <Border BorderThickness="2"
-            BorderBrush="Transparent"
-            CornerRadius="6"
-            Padding="20,0"
-            SnapsToDevicePixels="True">
+         DataContext is CustomRateListViewModel: RatesView, CustomRates,
+         SelectedRate, SearchTerm, FilterCommand, SortCommand, ViewRateCommand,
+         DeleteRateCommand. There is no add command on this view model, so the
+         design's "Add Custom Rate +" stays on the trade screens. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+        <!-- Head: title and the one-line promise -->
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,24,0">
+                <TextBlock Style="{StaticResource SxH1}" Text="Saved Custom Rates" />
+                <TextBlock Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
+                           Text="The rates you built. They stay on this PC and travel with your account, never into the ADLM library." />
+            </StackPanel>
+            <!-- Kept from the old screen: delete whichever row is selected -->
+            <Button Grid.Column="1" Style="{StaticResource SxBtnGhost}" VerticalAlignment="Top"
+                    Command="{Binding DeleteRateCommand}"
+                    Content="Delete selected rate"
+                    ToolTip="Select a row first. This removes the rate from this PC." />
+        </Grid>
 
-            </Grid.RowDefinitions>
+        <Border Grid.Row="1" Style="{StaticResource SxPanel}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-            <!-- 1. Header -->
-            <DockPanel>
-                <StackPanel>
-                    <TextBlock Text="Saved Custom Rates"
-                               Style="{StaticResource EstHeader}" />
-                    
-                    
-                    <TextBlock Text="View, search or delete your custom rates."
-                               Style="{StaticResource EstSubheader}" />
-                </StackPanel>
+                <!-- Bar: find, then filter and sort -->
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="180" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- Add‑custom‑rate button -->
-                <Button DockPanel.Dock="Right"
-                        Style="{StaticResource PrimaryButtonCus}"
-                        Command="{Binding DeleteRateCommand}"
-                        Width="276"
-                        Margin="680,0,0,0"
-                        >
-
-                    <TextBlock Text="Delete Selected  Rate "
-                               Style="{StaticResource BtnText}" />
-                </Button>
-            </DockPanel>
-
-            <Border Background="{DynamicResource MainBg}"
-                    CornerRadius="16"
-                    BorderThickness="1"
-                    BorderBrush="{DynamicResource LightGrayBrush}"
-                    Padding="24"
-                    SnapsToDevicePixels="True"
-                    Grid.Row="1"
-                    Margin="0,22,0,0">
-                <Grid>
-
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-
-                    </Grid.RowDefinitions>
-
-                    <Grid Grid.Row="0"
-                          Margin="0,10,0,10">
-
-                        <!--  ▸ columns: 160 | 16 | 160 | 16 | * | 16 | 110 | 16 | 110  -->
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="160" />
-                            <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="160" />
-                            <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="110" />
-                            <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="110" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- ────── Search ────── -->
-                        <Grid Grid.Column="4"
-                              Height="46">
-                            <TextBox Style="{StaticResource SearchBoxWithIcon}"
-                                     Tag="Search description…"
-                                     Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center" />
-
-                            
-                                    
-                        </Grid>
-
-
-
-
-                        <!-- ────── Buttons ────── -->
-                        <Button Grid.Column="6"
-                                Content="Filter ⌄"
-                                Command="{Binding FilterCommand}"
-                                Style="{StaticResource RectButton}" />
-
-                        <Button Grid.Column="8"
-                                Content="Sort by ⌄"
-                                Style="{StaticResource RectButton}"
-                                Command="{Binding SortCommand}" />
-
-                    </Grid>
-
-                    <!-- 3. DataGrid of Rates -->
-
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding RatesView}"
-                              SelectedItem="{Binding SelectedRate}"
-                              Style="{StaticResource DataGridStyle}">
-
-
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Title"
-                                                Binding="{Binding Title}"
-                                                Width="*"
-                                                ElementStyle="{StaticResource CenterCellNr}" />
-                            <DataGridTemplateColumn Header="Description"
-                                                    Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Description}"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource Blue900Brush}"
-                                                   Style="{StaticResource CenterCellText}">
-                                            <TextBlock.InputBindings>
-                                                <MouseBinding MouseAction="LeftClick"
-                                                              Command="{Binding DataContext.ViewRateCommand,RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                              CommandParameter="{Binding}" />
-                                            </TextBlock.InputBindings>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-
-
-                            <DataGridTextColumn Header="Overhead (%)"
-                                                Binding="{Binding OverheadPercent}"
-                                                Width="90"
-                                                ElementStyle="{StaticResource CenterCellNr}" />
-                            <DataGridTextColumn Header="Profit (%)"
-                                                Binding="{Binding ProfitPercent}"
-                                                Width="110"
-                                                ElementStyle="{StaticResource CenterCellNr}" />
-                            <DataGridTextColumn Header="Grand Total"
-                                                Width="140"
-                                                Binding="{Binding GrandTotal,
-                                      Converter={StaticResource MoneyConv}}"
-                                                ElementStyle="{StaticResource CenterCellText}" />
-
-                            <DataGridTextColumn Header="Created Date"
-                                                Binding="{Binding CreatedDate}"
-                                                Width="150"
-                                                ElementStyle="{StaticResource CenterCellText}" />
-
-                        </DataGrid.Columns>
-                    </DataGrid>
-
-
+                    <Border Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                        <DockPanel>
+                            <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Search}"
+                                            Foreground="{DynamicResource SxInk3}" Margin="0,0,8,0" />
+                            <TextBox Style="{StaticResource SxBare}" Tag="Search your saved rates"
+                                     Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}" />
+                        </DockPanel>
+                    </Border>
+                    <Button Grid.Column="1" Style="{StaticResource SxBtnGhost}" Margin="0,0,10,0"
+                            Command="{Binding FilterCommand}" ToolTip="Filter the list">
+                        <StackPanel Orientation="Horizontal">
+                            <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Filter}"
+                                            Foreground="{DynamicResource SxInk3}" Margin="0,0,8,0" />
+                            <TextBlock Text="Filter" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="2" Style="{StaticResource SxBtnGhost}"
+                            Command="{Binding SortCommand}" ToolTip="Change the order of the list">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Sort by" VerticalAlignment="Center" />
+                            <Path Data="M0,0 L4.5,4.5 L9,0" Margin="10,0,0,0"
+                                  Stroke="{DynamicResource SxInk3}" StrokeThickness="1.6"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
-            </Border>
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DataGrid x:Name="Table" MinWidth="900" Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Style="{StaticResource SxTable}"
+                          ItemsSource="{Binding RatesView}"
+                          SelectedItem="{Binding SelectedRate}">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="TITLE" Width="*" MinWidth="160">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource SxCell}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Title}" ToolTip="{Binding Title}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="DESCRIPTION" Width="2*" MinWidth="220">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <!-- Clicking the wording opens the rate for editing -->
+                                    <TextBlock Style="{StaticResource SxCellDesc}"
+                                               Text="{Binding Description}" ToolTip="{Binding Description}">
+                                        <TextBlock.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.ViewRateCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                          CommandParameter="{Binding}" />
+                                        </TextBlock.InputBindings>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="OVERHEAD %" Width="Auto" MinWidth="104"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding OverheadPercent}"
+                                            ElementStyle="{StaticResource SxCellNum}" />
+                        <DataGridTextColumn Header="PROFIT %" Width="Auto" MinWidth="90"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding ProfitPercent}"
+                                            ElementStyle="{StaticResource SxCellNum}" />
+                        <DataGridTextColumn Header="GRAND TOTAL" Width="Auto" MinWidth="128"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding GrandTotal, Converter={StaticResource MoneyConv}}"
+                                            ElementStyle="{StaticResource SxCellNumB}" />
+                        <DataGridTextColumn Header="CREATED" Width="Auto" MinWidth="110"
+                                            Binding="{Binding CreatedDate, StringFormat='d MMM yyyy'}"
+                                            ElementStyle="{StaticResource SxCellMuted}" />
+                        <DataGridTemplateColumn Width="44">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource SxDel}" HorizontalAlignment="Right"
+                                            Margin="0,-4,0,-4"
+                                            ToolTip="Delete this rate"
+                                            AutomationProperties.Name="Delete"
+                                            Click="DeleteRow_Click" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                </ScrollViewer>
 
-        </Grid>
-    </Border>
+                <!-- Empty is a state: say why, in the table's place -->
+                <TextBlock Grid.Row="1" VerticalAlignment="Top" Margin="0,56,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SxNone}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CustomRates.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text="Nothing saved yet." /> <Run Text="Add Custom Rate" FontWeight="SemiBold" /><Run Text=" builds one, from scratch or from a sentence you type." />
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

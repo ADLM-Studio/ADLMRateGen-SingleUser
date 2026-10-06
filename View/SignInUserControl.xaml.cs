@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +20,26 @@ namespace ADLMRateGen.View
         {
             InitializeComponent();
             UpdatePasswordVisibility();
+
+            // In its own window the card is the window. Shown over the main window
+            // (signed out mid-session) it needs the splash's own backdrop, the
+            // design's review-page background, so the app behind it is not seen.
+            Loaded += (_, __) =>
+            {
+                if (Window.GetWindow(this) is MainWindow)
+                {
+                    var bg = new System.Windows.Media.RadialGradientBrush
+                    {
+                        Center = new Point(0.5, 0.42), GradientOrigin = new Point(0.5, 0.42),
+                        RadiusX = 0.9, RadiusY = 0.7
+                    };
+                    bg.GradientStops.Add(new System.Windows.Media.GradientStop(System.Windows.Media.Color.FromArgb(0x6B, 0x12, 0x48, 0x96), 0));
+                    bg.GradientStops.Add(new System.Windows.Media.GradientStop(System.Windows.Media.Color.FromRgb(0x04, 0x0F, 0x1F), 0.62));
+                    LayoutRoot.Background = bg;
+                    Card.Margin = new Thickness(40);
+                    FormLayer.Margin = new Thickness(40);
+                }
+            };
         }
 
         private void TogglePwd_Click(object sender, RoutedEventArgs e)
@@ -143,7 +163,7 @@ namespace ADLMRateGen.View
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Unable to open link.\n{ex.Message}", "ADLM Rate Gen");
+                ADLMRateGen.Helpers.AppMessage.Show($"Unable to open link.\n{ex.Message}", "ADLM Rate Gen");
             }
         }
     }

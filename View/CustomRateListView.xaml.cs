@@ -48,5 +48,24 @@ namespace ADLMRateGen.View
 			});
 		}
 
+		/// <summary>
+		/// The × on a row (the suite design): select that row, confirm, then run
+		/// the view model's existing DeleteRateCommand, which deletes SelectedRate.
+		/// </summary>
+		private void DeleteRow_Click(object sender, RoutedEventArgs e)
+		{
+			if (DataContext is not CustomRateListViewModel vm) return;
+			if ((sender as FrameworkElement)?.DataContext is not CustomRate rate) return;
+
+			var name = string.IsNullOrWhiteSpace(rate.Title) ? "This rate" : rate.Title;
+			if (!Suite.SuiteDialog.Ask("Delete this rate?",
+					$"{name} is removed from this PC. The ADLM library is not affected. This cannot be undone.",
+					"Delete", "Keep it", Suite.SuiteDialog.Tone.Danger)) return;
+
+			vm.SelectedRate = rate;
+			if (vm.DeleteRateCommand?.CanExecute(null) == true)
+				vm.DeleteRateCommand.Execute(null);
+		}
+
 	}
 }

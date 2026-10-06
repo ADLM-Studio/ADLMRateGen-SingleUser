@@ -34,9 +34,18 @@
 			set { _totalPrice = value; RaisePropertyChanged(); }
 		}
 
+		/// <summary>The summary rows under the components: net cost, overhead,
+		/// profit and the total rate. They are sums and percentages, not things
+		/// with a quantity, so they read as totals and cannot be edited.</summary>
 		public bool IsTotalLine =>
 			!string.IsNullOrEmpty(ComponentName)
-			&& ComponentName.IndexOf("total", System.StringComparison.OrdinalIgnoreCase) >= 0;
+			&& (ComponentName.IndexOf("total", System.StringComparison.OrdinalIgnoreCase) >= 0
+				|| ComponentName.StartsWith("Net cost", System.StringComparison.OrdinalIgnoreCase)
+				|| ComponentName.StartsWith("Overhead @", System.StringComparison.OrdinalIgnoreCase)
+				|| ComponentName.StartsWith("Profit @", System.StringComparison.OrdinalIgnoreCase));
+
+		/// <summary>Only a priced component has a quantity worth changing.</summary>
+		public bool IsEditableQuantity => !IsTotalLine;
 	
         /// <summary>
         /// Opens the library at the row this line is priced from. Shared across

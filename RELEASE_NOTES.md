@@ -1,5 +1,66 @@
 # ADLM Rate Gen — Release Notes
 
+## v3.0.0
+
+RateGen in Richard Enoch's ADLM suite design, with services split into four
+disciplines and a carbon figure for every priced rate. Two pricing fixes move
+some rates: blockwork and render (mortar) go up, and some cloud services rates
+come down (an uplift was being added twice). Both are explained below.
+
+### A new look, the same as every ADLM product
+
+- The rail on the left: the Library, every trade under Item of Works, a
+  Services group, Carbon, and your Saved Rates with a count. Below 1100 px wide
+  it folds to icons by itself; Ctrl+B folds or unfolds it.
+- Every trade screen shares one layout: find, sort (bill order, most expensive,
+  A to Z), and a table you open with a click or Enter to see the rate's
+  build-up. Quantities in a build-up are edited in place; Enter keeps them.
+- The Library (materials and labour) uses the same table, find and sort.
+- Messages and questions are ADLM dialogs, not Windows message boxes.
+- Loading shows the step it is on ("Preparing your library", "Loading the rate
+  build-ups") and moves when a step finishes.
+- The splash and sign-in follow the suite design.
+- The window fits the screen at any size and scaling, down to 860 px wide.
+- "To CM App" is now **Open ADLM Cloud**, which opens RateGen in your ADLM
+  account.
+- RateGen's own icon, at every size, on the taskbar and the desktop.
+
+### Services: Mechanical, Electrical, Plumbing and Fire
+
+Services rates are split into four disciplines, each with its own screen. The
+ADLM cloud's services rates are filed under their discipline and priced once:
+the 35% uplift some carried on top of their price is no longer added again.
+
+### Carbon
+
+Carbon & Others shows the upfront embodied carbon (RICS whole life carbon,
+modules A1-A5) of every priced rate, worked out from the same materials and
+quantities as its price. Open a rate to see each line's carbon, its factor and
+the factor's published source; a rate that reuses another (mortar in a wall,
+the mixer in concrete) takes that rate's carbon.
+
+- A rate with cement shows a range. The low end takes the Nigerian producers'
+  own cement figure (Dangote 2024, 570 kg CO2/t; Lafarge Africa 2024, 537; the
+  kiln only, so a floor), the high end the full cradle-to-gate 0.83 kgCO2e/kg.
+- Reinforcement uses scrap-based electric-furnace steel (CARES EPD 0060,
+  0.821 kgCO2e/kg), the route Nigeria's own rebar mills use.
+- Coverage says how much of a rate's cost the figure accounts for; * marks a
+  rate that uses an assumed mass. Labour and plant hire carry no material carbon.
+- Services, windows and doors, asbestos sheets and ceilings have no carbon yet:
+  there is no published factor or weight to work from.
+
+### Fixed: mortar was a quarter of what a wall actually buys
+
+A 225 mm wall carried 0.054 bags of cement per m2 against about 0.20 in
+practice. Mortar mixes now allow for dry materials shrinking when mixed, and the
+mortar bed matches the Lagos build-up rate. A 225 wall now buys 0.195 bags per
+m2 and 12 mm render 0.146, so blockwork and render rates go up.
+
+### Also fixed
+
+- Refreshing one trade's rates no longer wipes the rates cached for the others.
+- A cloud services rate is priced from the line it names, not its description.
+
 ## v2.9.2
 
 ### Build with AI now expects you to ask for a rate

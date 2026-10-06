@@ -15,6 +15,9 @@ namespace ADLMRateGen.View
 		{
 			// second child of the Grid inside the Border is our ContentPresenter
 			((ContentPresenter)((Grid)Card.Child).Children[1]).Content = view;
+			// A suite sheet carries its own close; a second one floating over its
+			// corner would be two ways out of the same thing.
+			HostClose.Visibility = Equals(view?.Tag, "SxSheet") ? Visibility.Collapsed : Visibility.Visible;
 			Visibility = Visibility.Visible;
 		}
 

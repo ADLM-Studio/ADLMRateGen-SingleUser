@@ -15,6 +15,9 @@
 
 
 
+                <!-- Suite controls first; they reach colours only through DynamicResource,
+                     so the theme dictionary swapped in after them still wins. -->
+                <ResourceDictionary Source="/Resources/Suite/Suite.xaml" />
                 <ResourceDictionary Source="/Resources/ADLMStylesTheme.xaml" />
                 <!--<ResourceDictionary Source="/Resources/ADLMStylesDarkTheme.xaml" />-->
 

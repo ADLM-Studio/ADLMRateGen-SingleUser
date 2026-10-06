@@ -1,0 +1,134 @@
+﻿<UserControl x:Class="ADLMRateGen.Controls.SuiteBanner"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignWidth="1100" d:DesignHeight="200">
+    <!-- The welcome banner every ADLM application carries at the top of its work
+         area (Richard's design, 30 Sep 2026; ADLM.banner() on the web): a wide
+         dark card with the date, the greeting, one promise, one link, carousel
+         dots, the product badge over the left edge and the artwork dissolving
+         off the right. It rotates because one message wears out, and it can be
+         hidden. It is a card inside the work area, not a bar on the chrome. -->
+    <Grid Margin="0,0,0,24">
+        <Border x:Name="Card" CornerRadius="18" Background="{DynamicResource SxHeroBg}"
+                MinHeight="176" ClipToBounds="True" SnapsToDevicePixels="True">
+            <Grid>
+                <!-- Artwork, right-aligned, faded in from the left. A brush on a
+                     rectangle rather than an Image, so the picture never sets the
+                     banner's height; the card is as tall as its words. -->
+                <Rectangle x:Name="Art" HorizontalAlignment="Right" RadiusX="18" RadiusY="18">
+                    <Rectangle.Fill>
+                        <ImageBrush ImageSource="/ADLMRateGen;component/Resources/Suite/bg-rategen.jpg" Stretch="UniformToFill"
+                                    AlignmentX="Right" AlignmentY="Center" />
+                    </Rectangle.Fill>
+                    <Rectangle.OpacityMask>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#00000000" Offset="0" />
+                            <GradientStop Color="#59000000" Offset="0.18" />
+                            <GradientStop Color="#FF000000" Offset="0.52" />
+                        </LinearGradientBrush>
+                    </Rectangle.OpacityMask>
+                </Rectangle>
+                <!-- Scrim so the words always read -->
+                <Rectangle RadiusX="18" RadiusY="18">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#E60A1A33" Offset="0" />
+                            <GradientStop Color="#8C0A1A33" Offset="0.46" />
+                            <GradientStop Color="#000A1A33" Offset="0.78" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+
+                <StackPanel x:Name="Words" Margin="84,26,30,26" MaxWidth="440" HorizontalAlignment="Left">
+                    <TextBlock x:Name="When" FontFamily="{StaticResource SxFont}" FontSize="11.5"
+                               FontWeight="SemiBold" Foreground="#A8FFFFFF" Margin="0,0,0,8" />
+                    <TextBlock x:Name="Hello" FontFamily="{StaticResource SxFont}" FontSize="27" Foreground="White"
+                               Margin="0,0,0,8" TextWrapping="Wrap">
+                        <Run Text="Welcome back, " /><Run x:Name="Who" FontWeight="Bold" /><Run Text="!" />
+                    </TextBlock>
+                    <TextBlock x:Name="Msg" FontFamily="{StaticResource SxFont}" FontSize="13.5"
+                               LineHeight="21" Foreground="#CCFFFFFF" TextWrapping="Wrap" Margin="0,0,0,16" />
+                    <Button x:Name="Cta" Click="Cta_Click" Cursor="Hand" HorizontalAlignment="Left"
+                            Focusable="True">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <StackPanel Orientation="Horizontal" Background="Transparent">
+                                    <TextBlock x:Name="T" Text="{TemplateBinding Content}"
+                                               FontFamily="{StaticResource SxFont}" FontSize="13.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource SxOrange400}" />
+                                    <TextBlock x:Name="A" Text="→" Margin="8,0,0,0"
+                                               FontFamily="{StaticResource SxFont}" FontSize="13.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource SxOrange400}" />
+                                </StackPanel>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="T" Property="Foreground" Value="{DynamicResource SxOrange300}" />
+                                        <Setter TargetName="A" Property="Foreground" Value="{DynamicResource SxOrange300}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <!-- Carousel dots -->
+                <ItemsControl x:Name="Dots" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Click="Dot_Click" Tag="{Binding Index}" Cursor="Hand" Margin="3,0"
+                                    ToolTip="{Binding Label}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="D" Width="7" Height="7" CornerRadius="3.5" Background="#4DFFFFFF" />
+                                        <ControlTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding On}" Value="True">
+                                                <Setter TargetName="D" Property="Width" Value="18" />
+                                                <Setter TargetName="D" Property="Background" Value="{DynamicResource SxOrange400}" />
+                                            </DataTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Hide -->
+                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0"
+                        Click="Hide_Click" Cursor="Hand" ToolTip="Hide this. The eye in the top bar brings it back.">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="B" Width="26" Height="26" CornerRadius="8" Background="#14FFFFFF">
+                                <TextBlock x:Name="X" Text="×" FontSize="15" Foreground="#B3FFFFFF"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="B" Property="Background" Value="#2EFFFFFF" />
+                                    <Setter TargetName="X" Property="Foreground" Value="White" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- RateGen's badge, overhanging the left edge -->
+        <Image x:Name="Badge" Source="/ADLMRateGen;component/Resources/Suite/ic-rategen.png" Width="76" Height="76"
+               HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-18,0,0,0"
+               RenderOptions.BitmapScalingMode="HighQuality">
+            <Image.Effect>
+                <DropShadowEffect BlurRadius="34" ShadowDepth="14" Direction="270" Opacity="0.45" />
+            </Image.Effect>
+        </Image>
+    </Grid>
+</UserControl>

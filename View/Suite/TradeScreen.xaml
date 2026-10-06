@@ -1,0 +1,174 @@
+﻿<UserControl x:Class="ADLMRateGen.View.Suite.TradeScreen"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             x:Name="Root"
+             d:DesignWidth="1100" d:DesignHeight="640">
+    <!-- One screen for all nine trades (Richard's design, 30 Sep 2026).
+
+         DataContext is the trade's own view model; every one of them exposes the
+         same OverheadPercent, ProfitPercent, SearchTerm, AddCustomRateCommand and
+         ShowDetailsCommand, and every row the same ItemNo, Description, Unit,
+         NetCost, ProfitValue, OverheadValue and TotalCost. The trade page only
+         says which collection and which title. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Head: title, the one-line promise, Add Custom Rate -->
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,24,0">
+                <TextBlock Style="{StaticResource SxH1}" Text="{Binding Title, ElementName=Root}" />
+                <TextBlock x:Name="LedeText" Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
+                           Text="Using material and labour prices from the library, written to the Standard Method of Measurement." />
+            </StackPanel>
+            <Button Grid.Column="1" Style="{StaticResource SxBtnAdd}" VerticalAlignment="Top"
+                    Command="{Binding AddCustomRateCommand}"
+                    ToolTip="Build a rate of your own. It stays on this PC.">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Add Custom Rate" VerticalAlignment="Center" />
+                    <TextBlock Text="+" FontSize="15" FontWeight="Normal" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource SxPanel}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Bar: overhead and profit set once and applied down the table,
+                     then find and sort. -->
+                <Grid x:Name="Bar" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="180" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border x:Name="OhBox" Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource SxMuted}" Text="Overhead" VerticalAlignment="Center" />
+                            <TextBox Style="{StaticResource SxBare}" Width="46" Margin="8,0,0,0"
+                                     FontWeight="SemiBold" TextAlignment="Right"
+                                     ToolTip="Overhead, as a percentage of the net cost of every rate below"
+                                     Text="{Binding OverheadPercent, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource SxMuted}" Text="%" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="PrBox" Grid.Column="1" Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource SxMuted}" Text="Profit" VerticalAlignment="Center" />
+                            <TextBox Style="{StaticResource SxBare}" Width="46" Margin="8,0,0,0"
+                                     FontWeight="SemiBold" TextAlignment="Right"
+                                     ToolTip="Profit, as a percentage of the net cost of every rate below"
+                                     Text="{Binding ProfitPercent, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Style="{StaticResource SxMuted}" Text="%" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="FindBox" Grid.Column="2" Style="{StaticResource SxBox}" Margin="0,0,10,0">
+                        <DockPanel>
+                            <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Search}"
+                                            Foreground="{DynamicResource SxInk3}" Margin="0,0,8,0" />
+                            <TextBox x:Name="Find" Style="{StaticResource SxBare}" Tag="Search this trade"
+                                     Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}" />
+                        </DockPanel>
+                    </Border>
+                    <ComboBox x:Name="SortBox" Grid.Column="3" Style="{StaticResource SxSelect}"
+                              SelectedIndex="0" SelectionChanged="SortBox_SelectionChanged"
+                              ToolTip="Order the table">
+                        <ComboBoxItem Content="Sort by · order in the bill" />
+                        <ComboBoxItem Content="Sort by · most expensive" />
+                        <ComboBoxItem Content="Sort by · A to Z" />
+                    </ComboBox>
+                </Grid>
+
+                <!-- The design's .rg-tw: the table keeps a 900px minimum and scrolls
+                     sideways inside the card when the window is narrower. -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DataGrid x:Name="Table" MinWidth="900" Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Style="{StaticResource SxTable}"
+                          ItemsSource="{Binding Items, ElementName=Root}"
+                          PreviewMouseLeftButtonUp="Table_PreviewMouseLeftButtonUp"
+                          PreviewKeyDown="Table_PreviewKeyDown">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="S/N" Binding="{Binding ItemNo}" Width="56"
+                                            ElementStyle="{StaticResource SxCellMuted}" />
+                        <DataGridTemplateColumn Header="DESCRIPTION" Width="*" MinWidth="240">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource SxCellDesc}"
+                                               Text="{Binding Description}" ToolTip="{Binding Description}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn x:Name="ColTrade" Header="TRADE" Binding="{Binding Trade}" Width="110"
+                                            Visibility="Collapsed" ElementStyle="{StaticResource SxCellUnit}" />
+                        <DataGridTextColumn Header="UNIT" Binding="{Binding Unit}" Width="72"
+                                            ElementStyle="{StaticResource SxCellUnit}" />
+                        <DataGridTextColumn x:Name="ColNet" Header="NET COST" Width="Auto" MinWidth="116"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding NetCost, Converter={StaticResource MoneyConv}}"
+                                            ElementStyle="{StaticResource SxCellNum}" />
+                        <DataGridTextColumn x:Name="ColProfit" Header="PROFIT" Width="Auto" MinWidth="108"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding ProfitValue, Converter={StaticResource MoneyConv}}"
+                                            ElementStyle="{StaticResource SxCellNum}" />
+                        <DataGridTextColumn x:Name="ColOverhead" Header="OVERHEAD" Width="Auto" MinWidth="108"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding OverheadValue, Converter={StaticResource MoneyConv}}"
+                                            ElementStyle="{StaticResource SxCellNum}" />
+                        <DataGridTextColumn x:Name="ColTotal" Header="TOTAL COST" Width="Auto" MinWidth="124"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding TotalCost, Converter={StaticResource MoneyConv}}"
+                                            ElementStyle="{StaticResource SxCellNumB}" />
+                        <!-- Carbon mode: upfront carbon per unit, and how much of the build-up it accounts for -->
+                        <DataGridTextColumn x:Name="ColCarbon" Header="KGCO2E / UNIT" Width="Auto" MinWidth="150"
+                                            Visibility="Collapsed"
+                                            HeaderStyle="{StaticResource SxTableHeaderRight}"
+                                            Binding="{Binding CarbonRange}"
+                                            ElementStyle="{StaticResource SxCellNumB}" />
+                        <DataGridTemplateColumn x:Name="ColCoverage" Header="COVERAGE" Width="96" Visibility="Collapsed"
+                                                HeaderStyle="{StaticResource SxTableHeaderRight}">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock ToolTip="Share of the build-up's cost whose carbon is accounted for. Labour and plant hire count as zero carbon; a line without a published factor is not counted.">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+                                                <Setter Property="Text" Value="{Binding Coverage, StringFormat={}{0:P0}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasAssumedMass}" Value="True">
+                                                        <Setter Property="Text" Value="{Binding Coverage, StringFormat={}{0:P0} *}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                </ScrollViewer>
+
+                <!-- Empty is a state: say why, in the table's place -->
+                <TextBlock x:Name="None" Grid.Row="1" Style="{StaticResource SxNone}" VerticalAlignment="Top"
+                           Margin="0,56,0,0" Visibility="Collapsed" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

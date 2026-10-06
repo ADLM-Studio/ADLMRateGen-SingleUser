@@ -36,6 +36,8 @@ namespace ADLMRateGen.ViewModel.MepWork
 		public const string SectionKey = Services.SectionKeys.Mep;
 
 		private readonly GetItemsFromDB _helper;
+		private readonly MaterialLibraryViewModel _matLib;
+		private readonly ComputeItemEngine _compute;
 
 		private double _overheadPercent = 10.0;
 		private double _profitPercent = 25.0;
@@ -79,6 +81,43 @@ namespace ADLMRateGen.ViewModel.MepWork
 			"All", "Lighting", "Power", "Cables", "Earthing", "Containment",
 			"Sanitary", "Air Conditioning & Ventilation", "Fire Protection", "Security"
 		};
+
+		/* ───────────── services, split the way a bill is (30 Sep 2026) ─────────────
+		   The rail shows four services rather than one MEP heap: Mechanical,
+		   Electrical, Plumbing and Fire. One engine still prices them all, so a
+		   rate and its overrides are the same whichever list it is opened from;
+		   the discipline only decides which rows are listed. */
+		public const string Mechanical = "Mechanical";
+		public const string Electrical = "Electrical";
+		public const string Plumbing = "Plumbing";
+		public const string Fire = "Fire";
+
+		public static string DisciplineOf(string? section) => section switch
+		{
+			Mechanical or Electrical or Plumbing or Fire => section!,
+			"Air Conditioning & Ventilation" => Mechanical,
+			"Sanitary" or "Water Supply" or "Soil & Waste" or "Rainwater" => Plumbing,
+			"Fire Protection" => Fire,
+			_ => Electrical
+		};
+
+		private string _discipline = Electrical;
+
+		/// <summary>Which of the four services is listed.</summary>
+		public string Discipline
+		{
+			get => _discipline;
+			set
+			{
+				if (_discipline == value) return;
+				_discipline = value;
+				RaisePropertyChanged();
+				RaisePropertyChanged(nameof(DisciplineTitle));
+				MepWorkCollectionView?.Refresh();
+			}
+		}
+
+		public string DisciplineTitle => Discipline + " Services Computation";
 
 		public string SelectedSection
 		{
@@ -128,7 +167,15 @@ namespace ADLMRateGen.ViewModel.MepWork
 		public MepWorkViewModel(MaterialLibraryViewModel matLib, LabourLibraryViewModel labourLib)
 		{
 			_helper = new GetItemsFromDB(matLib, labourLib);
+			_matLib = matLib;
+			_compute = new ComputeItemEngine(_helper.GetMaterialPrice, _helper.GetLabourRate);
 			matLib.LibraryChanged += OnLibraryChanged;
+			ComputeCatalogStore.Changed += () =>
+			{
+				var disp = System.Windows.Application.Current?.Dispatcher;
+				if (disp == null || disp.CheckAccess()) RecomputeAll();
+				else disp.BeginInvoke((Action)RecomputeAll);
+			};
 			labourLib.LibraryChanged += OnLibraryChanged;
 
 			BuildMepWorkItems();
@@ -201,6 +248,8 @@ namespace ADLMRateGen.ViewModel.MepWork
 		{
 			if (obj is not MepWorkItem item) return false;
 
+			if (DisciplineOf(item.Section) != Discipline) return false;
+
 			if (SelectedSection != "All" &&
 				!string.Equals(item.Section, SelectedSection, StringComparison.OrdinalIgnoreCase))
 				return false;
@@ -244,6 +293,19 @@ namespace ADLMRateGen.ViewModel.MepWork
 		/// </summary>
 		private MepWorkItem Compose(string section, string description, string unit,
 									params (string catalogName, double qty, string qtyUnit)[] parts)
+			=> Build(section, description, unit, parts, Array.Empty<(string, double, string)>());
+
+		/// <summary>
+		/// A rate built from SUPPLY prices plus the labour to fix them (materials
+		/// listed first, then labour, as the builder lists them), for the
+		/// catalogue rows priced supply-only (plumbing pipework, valves, drainage).
+		/// These are the one place in services where labour is added, because the
+		/// price does not already include it. Outputs are the library's own, from
+		/// Data/labourSpecs.json, cited at each item; nothing here is estimated.
+		/// </summary>
+		private MepWorkItem Build(string section, string description, string unit,
+								  (string catalogName, double qty, string qtyUnit)[] parts,
+								  (string labourName, double qty, string qtyUnit)[] labour)
 		{
 			int itemNo = ++_itemNo;
 			var lines = new ObservableCollection<MepWorkBreakdownLine>();
@@ -267,11 +329,29 @@ namespace ADLMRateGen.ViewModel.MepWork
 				});
 			}
 
+			foreach (var (labourName, defaultQty, qtyUnit) in labour)
+			{
+				double qty = Services.UserRateEditStore.Current.Qty(SectionKey, itemNo, labourName, defaultQty);
+				double rate = _helper.GetLabourRate(labourName);
+				double total = rate * qty;
+				net += total;
+				lines.Add(new MepWorkBreakdownLine
+				{
+					ComponentName = labourName,
+					Quantity = qty,
+					Unit = qtyUnit,
+					UnitPrice = rate,
+					TotalPrice = total
+				});
+			}
+
 			var ohp = ApplyOHP(net);
 
 			lines.Add(new MepWorkBreakdownLine
 			{
-				ComponentName = "Net cost (supply & install, from library)",
+				ComponentName = labour.Length == 0
+					? "Net cost (supply & install, from library)"
+					: "Net cost (supply and labour, from library)",
 				Quantity = 1,
 				Unit = unit,
 				TotalPrice = net
@@ -320,6 +400,114 @@ namespace ADLMRateGen.ViewModel.MepWork
 		private void BuildMepWorkItems()
 		{
 			_itemNo = 0;
+			BuildLocalItems();
+			AppendCloudServices();
+		}
+
+		/* ───────────── the services ADLM publishes from the cloud ─────────────
+		   The AI service's building-services build-ups (sockets, lighting, earthing,
+		   fans, split units, fire, pipework, valves, sanitary fittings, tank, pump)
+		   arrive in the cloud's "carbon" section; ServiceRouting files each under
+		   its service by the library category of its materials. Where one prices
+		   the same thing as a rate built here, the published build-up wins (it
+		   carries fittings and waste) and the local one steps aside.
+
+		   Numbered from 201 in a fixed order, so a quantity someone edits keeps
+		   its item number however the list changes around it. */
+		private const int CloudNumberBase = 200;
+
+		private string? CategoryOf(string name) =>
+			_matLib.MaterialLibrary.FirstOrDefault(m => m.MaterialName == name)?.MaterialCategory;
+
+		private void AppendCloudServices()
+		{
+			var defs = (ComputeCatalogStore.Items ?? Array.Empty<ComputeItemDefinition>())
+				.Where(d => d != null && d.enabled)
+				.OrderBy(d => d.id, StringComparer.Ordinal)
+				.ToList();
+			if (defs.Count == 0) return;
+
+			var cloudPrimaries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			int n = CloudNumberBase;
+			foreach (var def in defs)
+			{
+				n++;
+				var discipline = ServiceRouting.DisciplineOf(def, CategoryOf);
+				if (discipline == null) continue;
+
+				var item = ComposeCloud(def, discipline, n);
+				if (item == null) continue;
+				MepWorkItems.Add(item);
+
+				var primary = def.lines.FirstOrDefault(l => string.Equals(l.kind, "material", StringComparison.OrdinalIgnoreCase));
+				if (primary != null) cloudPrimaries.Add(primary.refName ?? primary.description);
+			}
+
+			// local rates whose main component the cloud already prices
+			foreach (var local in MepWorkItems.Where(i => i.ItemNo <= CloudNumberBase).ToList())
+			{
+				var first = local.MepBreakdownLine.FirstOrDefault()?.ComponentName;
+				if (first != null && cloudPrimaries.Contains(first)) MepWorkItems.Remove(local);
+			}
+		}
+
+		private MepWorkItem? ComposeCloud(ComputeItemDefinition def, string discipline, int itemNo)
+		{
+			ComputeItemEngine.Result computed;
+			try { computed = _compute.Compute(def); }
+			catch { return null; }
+
+			var lines = new ObservableCollection<MepWorkBreakdownLine>();
+			double net = 0;
+			foreach (var l in computed.Lines)
+			{
+				// every quantity stays the QS's to change, as in every other build-up
+				double qty = Services.UserRateEditStore.Current.Qty(SectionKey, itemNo, l.Name, (double)l.Qty);
+				// Show the rate actually used per unit of the line: a labour line in
+				// hours carries the day rate times the published hourly factor, and
+				// "0.35 hr x 10,000/day" would not add up on the screen.
+				double unitPrice = (double)l.Qty == 0 ? (double)l.UnitPrice : (double)(l.Total / l.Qty);
+				double total = (double)l.Qty == 0 ? (double)l.Total : unitPrice * qty;
+				net += total;
+				lines.Add(new MepWorkBreakdownLine
+				{
+					ComponentName = l.Name,
+					Quantity = qty,
+					Unit = l.Unit ?? "",
+					UnitPrice = unitPrice,
+					TotalPrice = total
+				});
+			}
+			// The published item carries a "PO" uplift of 35%: ADLM's own 10%
+			// overhead plus 25% profit, baked in. The QS's overhead and profit are
+			// applied below, as on every other rate, so the uplift is left out
+			// rather than charged twice.
+			if (!(net > 0)) return null;
+
+			var ohp = ApplyOHP(net);
+			lines.Add(new MepWorkBreakdownLine { ComponentName = "Net cost (published by ADLM, priced from your library)", Quantity = 1, Unit = def.outputUnit ?? "", TotalPrice = net });
+			lines.Add(new MepWorkBreakdownLine { ComponentName = $"Overhead @ {OverheadPercent:0.##}%", Quantity = 1, TotalPrice = ohp.overheadVal });
+			lines.Add(new MepWorkBreakdownLine { ComponentName = $"Profit @ {ProfitPercent:0.##}%", Quantity = 1, TotalPrice = ohp.profitVal });
+			lines.Add(new MepWorkBreakdownLine { ComponentName = "Total rate", Quantity = 1, Unit = def.outputUnit ?? "", TotalPrice = ohp.total });
+			foreach (var w in computed.Warnings)
+				lines.Add(new MepWorkBreakdownLine { ComponentName = "Check: " + w, Quantity = 0 });
+
+			return new MepWorkItem
+			{
+				ItemNo = itemNo,
+				Section = discipline,
+				Description = def.name ?? "Untitled",
+				Unit = string.IsNullOrWhiteSpace(def.outputUnit) ? "No." : def.outputUnit,
+				NetCost = Math.Round(net, 2),
+				OverheadValue = Math.Round(ohp.overheadVal, 0),
+				ProfitValue = Math.Round(ohp.profitVal, 0),
+				TotalCost = Math.Round(ohp.total, 2),
+				MepBreakdownLine = lines
+			};
+		}
+
+		private void BuildLocalItems()
+		{
 
 			// ── Lighting. Point wiring plus the fitting it serves, plus the switch that
 			//    controls it. The source bill measures all three separately against the
@@ -478,6 +666,63 @@ namespace ADLMRateGen.ViewModel.MepWork
 			MepWorkItems.Add(Compose("Air Conditioning & Ventilation",
 				"Ceiling fan complete with regulator; installed and connected", "No.",
 				("Ceiling fan complete with regulator", 1, "No.")));
+
+			// ── Plumbing built up from supply prices and the library's labour outputs.
+			//    Data/labourSpecs.json:
+			//      Pipefitter (PPR fusion and uPVC solvent welding), gang 1 fitter + 1 helper:
+			//        "30-60 joints/day, or 20-30 m/day of run pipe"      -> 25 m/day, 45 joints/day
+			//      Plumber (skilled), gang 1 plumber + 1.5 to 2 helpers:
+			//        "8-10 m/day supply pipe, 6-8 m/day drain pipe, or about 3 toilets/day"
+			//                                                           -> 7 m/day drain, 3 fittings/day, 1.75 mates
+			//    Midpoints of the published ranges; every quantity is editable in the
+			//    composition, because output is the figure that changes from job to job.
+			const string Fitter = "Pipefitter (PPR fusion and uPVC solvent welding)";
+			const string Plumber = "Plumber (skilled)";
+			const string Mate = "Plumber mate";
+			const double RunPerDay = 25, JointsPerDay = 45, DrainPerDay = 7, FittingsPerDay = 3, Mates = 1.75;
+
+			foreach (var (size, pipe) in new[]
+			{
+				("15mm", "PPR pressure pipe, PN10 to BS EN ISO 15874, 15mm"),
+				("25mm", "PPR pressure pipe, PN10 to BS EN ISO 15874, 25mm"),
+				("32mm", "PPR pressure pipe, PN10 to BS EN ISO 15874, 32mm"),
+			})
+			{
+				MepWorkItems.Add(Build("Water Supply",
+					$"{size} PPR pressure pipe, PN10 to BS EN ISO 15874, heat-fusion jointed; fixed with clips", "m",
+					new[] { (pipe, 1.0, "m") },
+					new[] { (Fitter, Math.Round(1 / RunPerDay, 4), "day"), (Mate, Math.Round(1 / RunPerDay, 4), "day") }));
+			}
+
+			MepWorkItems.Add(Build("Water Supply",
+				"15mm isolating valve, jointed to PPR pipework", "No.",
+				new[] { ("Isolating valve, 15mm", 1.0, "No.") },
+				new[] { (Fitter, Math.Round(2 / JointsPerDay, 4), "day"), (Mate, Math.Round(2 / JointsPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Water Supply",
+				"25mm chromium plated stop valve, jointed to PPR pipework", "No.",
+				new[] { ("Stop valve, 25mm, chromium plated", 1.0, "No.") },
+				new[] { (Fitter, Math.Round(2 / JointsPerDay, 4), "day"), (Mate, Math.Round(2 / JointsPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Soil & Waste",
+				"100mm uPVC soil, waste and vent pipe to BS 4514, solvent welded; fixed with brackets", "m",
+				new[] { ("uPVC soil, waste and vent pipe to BS 4514, 100mm", 1.0, "m") },
+				new[] { (Plumber, Math.Round(1 / DrainPerDay, 4), "day"), (Mate, Math.Round(Mates / DrainPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Soil & Waste",
+				"38mm uPVC liquid waste and vent pipe, solvent welded; fixed with clips", "m",
+				new[] { ("uPVC liquid waste and vent pipe, 38mm", 1.0, "m") },
+				new[] { (Plumber, Math.Round(1 / DrainPerDay, 4), "day"), (Mate, Math.Round(Mates / DrainPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Rainwater",
+				"75mm uPVC rigid rainwater downpipe, fixed to walls with sockets", "m",
+				new[] { ("uPVC rigid rainwater downpipe, 75mm", 1.0, "m") },
+				new[] { (Plumber, Math.Round(1 / DrainPerDay, 4), "day"), (Mate, Math.Round(Mates / DrainPerDay, 4), "day") }));
+
+			MepWorkItems.Add(Build("Sanitary",
+				"Shower and shower tray with all accessories; fixed and connected", "No.",
+				new[] { ("Shower and shower tray, including all accessories", 1.0, "No.") },
+				new[] { (Plumber, Math.Round(1 / FittingsPerDay, 4), "day"), (Mate, Math.Round(Mates / FittingsPerDay, 4), "day") }));
 
 			// ── Fire protection
 			MepWorkItems.Add(Compose("Fire Protection",

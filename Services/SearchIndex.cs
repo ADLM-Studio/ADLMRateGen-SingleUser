@@ -80,9 +80,10 @@ namespace ADLMRateGen.Services
 			foreach (var m in vm.MepWorkViewModel.MepWorkItems)
 				_hits.Add(new SearchHit(
 					m.Description,
-					"MEP work",
+					ViewModel.MepWork.MepWorkViewModel.DisciplineOf(m.Section) + " services",
 					() =>
 					{
+						vm.MepWorkViewModel.Discipline = ViewModel.MepWork.MepWorkViewModel.DisciplineOf(m.Section);
 						vm.SelectedMepWorkViewCommand.Execute(null);
 						vm.MepWorkViewModel.SelectedDetail = m;
 					}));

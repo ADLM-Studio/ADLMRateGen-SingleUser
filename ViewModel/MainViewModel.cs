@@ -146,8 +146,41 @@ namespace ADLMRateGen.ViewModel
             set { _busyMessage = value; RaisePropertyChanged(); }
         }
 
+        /* Richard's loading system: work with stages names them, and the bar
+           moves when a stage finishes (View/Suite/SuiteProgress). Null steps =
+           a labelled pulse, for work that has no stages to name. */
+        private IList<string>? _busySteps;
+        public IList<string>? BusySteps
+        {
+            get => _busySteps;
+            set { _busySteps = value; RaisePropertyChanged(); }
+        }
+
+        private int _busyStep;
+        public int BusyStep
+        {
+            get => _busyStep;
+            set { _busyStep = value; RaisePropertyChanged(); }
+        }
+
+        private void MarkStep(int step)
+        {
+            var d = Application.Current?.Dispatcher;
+            if (d == null || d.CheckAccess()) BusyStep = step;
+            else d.Invoke(() => BusyStep = step);
+        }
+
+        private static readonly string[] SyncSteps =
+        {
+            "Reaching ADLM and the rate library",
+            "Bringing down the rate build-ups",
+            "Bringing prices down for your area",
+            "Keeping your custom rates as they are",
+        };
+
         private void SetBusy(bool isBusy, string? message = null)
         {
+            if (!isBusy) { BusySteps = null; BusyStep = 0; }
             var app = Application.Current;
             if (app?.Dispatcher == null)
             {
@@ -226,8 +259,8 @@ namespace ADLMRateGen.ViewModel
         public bool IsCustomRateInputActive { get => _isCustomRateInputActive; set { _isCustomRateInputActive = value; RaisePropertyChanged(); } }
 
         /* ───────── sidebar collapse ───────── */
-        public const double SidebarExpandedWidth = 250;
-        public const double SidebarCollapsedWidth = 62;
+        public const double SidebarExpandedWidth = 236;
+        public const double SidebarCollapsedWidth = 64;
         public const double SidebarCollapseThreshold = 120;
 
         private bool _isSidebarCollapsed;
@@ -332,6 +365,7 @@ namespace ADLMRateGen.ViewModel
                 IsConcreteViewActive = value == ConcreteViewModel;
                 IsBlockworkActive = value == BlockworkViewModel;
                 IsMepWorkActive = value == MepWorkViewModel;
+                RaiseServiceFlags();
                 IsFinishesActive = value == FinishesViewModel;
                 IsRoofworkActive = value == RoofWorkViewModel;
                 IsWindowAndDoorActive = value == WindowAndDoorViewModel;
@@ -371,6 +405,34 @@ namespace ADLMRateGen.ViewModel
         public ICommand SelectedConcreteWorkViewCommand { get; }
         public ICommand SelectedBlockworkViewCommand { get; }
         public ICommand SelectedMepWorkViewCommand { get; }
+
+        /* The four services on the rail. One MEP engine prices them all; each entry
+           sets which discipline it lists and opens it. */
+        public ICommand SelectedMechanicalViewCommand { get; }
+        public ICommand SelectedElectricalViewCommand { get; }
+        public ICommand SelectedPlumbingViewCommand { get; }
+        public ICommand SelectedFireViewCommand { get; }
+
+        private bool IsService(string discipline) =>
+            IsMepWorkActive && MepWorkViewModel?.Discipline == discipline;
+        public bool IsMechanicalActive => IsService(MepWorkViewModel.Mechanical);
+        public bool IsElectricalActive => IsService(MepWorkViewModel.Electrical);
+        public bool IsPlumbingActive => IsService(MepWorkViewModel.Plumbing);
+        public bool IsFireActive => IsService(MepWorkViewModel.Fire);
+
+        private void RaiseServiceFlags()
+        {
+            RaisePropertyChanged(nameof(IsMechanicalActive));
+            RaisePropertyChanged(nameof(IsElectricalActive));
+            RaisePropertyChanged(nameof(IsPlumbingActive));
+            RaisePropertyChanged(nameof(IsFireActive));
+        }
+
+        private void OpenService(string discipline)
+        {
+            MepWorkViewModel.Discipline = discipline;
+            SelectedViewModel = MepWorkViewModel;
+        }
         public ICommand SelectedFinishesViewCommand { get; }
         public ICommand SelectedRoofworkViewCommand { get; }
         public ICommand SelectedWindowAndDoorViewCommand { get; }
@@ -470,7 +532,7 @@ namespace ADLMRateGen.ViewModel
 
             ShowNotificationCommand = new RelayCommand(_ =>
             {
-                MessageBox.Show(NotificationMessage, "Price Update");
+                ADLMRateGen.Helpers.AppMessage.Show(NotificationMessage, "Price Update");
                 HasPriceNotifications = false;
             });
 
@@ -491,6 +553,30 @@ namespace ADLMRateGen.ViewModel
             PaintWorkViewModel = paintVM;
             SteelWorkViewModel = steelVM;
             CarbonOthersViewModel = carbonVM;
+
+            // Carbon rates are the carbon of every priced rate, from its own build-up
+            // (Services/CarbonRates): hand the trades and services over, and rebuild
+            // when any of them changes.
+            carbonVM.Sources = () =>
+                GroundWorkViewModel.GroundworkItems.Select(i => ("Ground", (object)i))
+                .Concat(ConcreteViewModel.ConcreteWorkItems.Select(i => ("Concrete", (object)i)))
+                .Concat(BlockworkViewModel.BlockworkItems.Select(i => ("Block Works", (object)i)))
+                .Concat(FinishesViewModel.FinishesItems.Select(i => ("Finishes", (object)i)))
+                .Concat(RoofWorkViewModel.RoofWorkItems.Select(i => ("Roofs", (object)i)))
+                .Concat(PaintWorkViewModel.PaintWorkItems.Select(i => ("Painting", (object)i)))
+                .Concat(SteelWorkViewModel.SteelWorkItems.Select(i => ("Steel", (object)i)))
+                .Concat(WindowAndDoorViewModel.WindowAndDoorItems.Select(i => ("Window and Door", (object)i)))
+                .Concat(MepWorkViewModel.MepWorkItems.Select(i => (MepWorkViewModel.DisciplineOf(i.Section), (object)i)))
+                .ToList();
+            foreach (var coll in new System.Collections.Specialized.INotifyCollectionChanged[]
+            {
+                GroundWorkViewModel.GroundworkItems, ConcreteViewModel.ConcreteWorkItems, BlockworkViewModel.BlockworkItems,
+                FinishesViewModel.FinishesItems, RoofWorkViewModel.RoofWorkItems, PaintWorkViewModel.PaintWorkItems,
+                SteelWorkViewModel.SteelWorkItems, WindowAndDoorViewModel.WindowAndDoorItems, MepWorkViewModel.MepWorkItems,
+            })
+                coll.CollectionChanged += (_, __) => carbonVM.RequestRebuild();
+            UserRateEditStore.Current.OverridesChanged += (_, __) => carbonVM.RequestRebuild();
+            carbonVM.RequestRebuild();
             CustomRateListViewModel = customListVM;
             CustomRateEntryViewModel = customEntryVM;
             SignInViewModel = signInVM;
@@ -593,6 +679,10 @@ namespace ADLMRateGen.ViewModel
             SelectedConcreteWorkViewCommand = new RelayCommand(_ => SelectedViewModel = concreteVM);
             SelectedBlockworkViewCommand = new RelayCommand(_ => SelectedViewModel = blockworkVM);
             SelectedMepWorkViewCommand = new RelayCommand(_ => SelectedViewModel = mepWorkVM);
+            SelectedMechanicalViewCommand = new RelayCommand(_ => OpenService(MepWorkViewModel.Mechanical));
+            SelectedElectricalViewCommand = new RelayCommand(_ => OpenService(MepWorkViewModel.Electrical));
+            SelectedPlumbingViewCommand = new RelayCommand(_ => OpenService(MepWorkViewModel.Plumbing));
+            SelectedFireViewCommand = new RelayCommand(_ => OpenService(MepWorkViewModel.Fire));
             SelectedFinishesViewCommand = new RelayCommand(_ => SelectedViewModel = finishesVM);
             SelectedRoofworkViewCommand = new RelayCommand(_ => SelectedViewModel = roofVM);
             SelectedWindowAndDoorViewCommand = new RelayCommand(_ => SelectedViewModel = winDoorVM);
@@ -765,7 +855,9 @@ namespace ADLMRateGen.ViewModel
                     return;
                 }
 
-                SetBusy(true, manual ? "Syncing from cloud…" : "Syncing after login…");
+                BusySteps = SyncSteps;
+                BusyStep = 0;
+                SetBusy(true, manual ? "Checking the library for updates" : "Bringing your library up to date");
                 CloudSyncStatus = "Cloud sync: running…";
 
                 // ✅ 1) Admin-created Rate Library (DB rates)
@@ -794,6 +886,8 @@ namespace ADLMRateGen.ViewModel
 
                     results.Add($"Rates: FAIL — {Describe(ex)}");
                 }
+
+                MarkStep(1);
 
                 // ✅ 2) Compute Catalog
                 bool computeOk = false;
@@ -833,6 +927,7 @@ namespace ADLMRateGen.ViewModel
                 // which wrote raw server arrays to a folder nothing reads.)
                 try
                 {
+                    MarkStep(2);
                     var masterSync = await Services.MasterLibrarySyncService.SyncAsync();
                     results.Add(masterSync.Ok
                         ? $"Master prices ({masterSync.Zone}): OK ({masterSync.Materials} materials, {masterSync.Labours} labour)"
@@ -857,6 +952,7 @@ namespace ADLMRateGen.ViewModel
                 }
 
                 // Refresh local UI
+                MarkStep(3);
                 MaterialLibraryViewModel.ReloadFromDisk();
                 LabourLibraryViewModel.ReloadFromDisk();
 
@@ -875,13 +971,13 @@ namespace ADLMRateGen.ViewModel
                 await InitializeNotificationStateAsync();
                 ScheduleUserRatesCloudSync();
 
+                MarkStep(SyncSteps.Length);
                 if (manual)
                 {
-                    MessageBox.Show(
-                        string.Join("\n", results),
-                        "Sync from Cloud",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                    SetBusy(false);
+                    View.Suite.SuiteDialog.Tell("Library checked",
+                        string.Join("\n", results) + "\n\nYour custom rates were left alone.",
+                        View.Suite.SuiteDialog.Tone.Success);
                 }
             }
             catch (Exception ex)
@@ -898,11 +994,10 @@ namespace ADLMRateGen.ViewModel
 
                 if (manual)
                 {
-                    MessageBox.Show(
-                        "Sync failed.",
-                        "Sync from Cloud",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
+                    SetBusy(false);
+                    View.Suite.SuiteDialog.Tell("The library could not be checked",
+                        "ADLM could not be reached just now. RateGen keeps working with the prices already on this PC and will try again the next time you sync.",
+                        View.Suite.SuiteDialog.Tone.Warning);
                 }
             }
             finally
@@ -1160,7 +1255,7 @@ namespace ADLMRateGen.ViewModel
 
             if (manual)
             {
-                MessageBox.Show(
+                ADLMRateGen.Helpers.AppMessage.Show(
                     "Please sign in again.",
                     "Sync from Cloud",
                     MessageBoxButton.OK,
@@ -1304,7 +1399,7 @@ namespace ADLMRateGen.ViewModel
                     zone,
                     async (prompt) =>
                     {
-                        var result = MessageBox.Show(
+                        var result = ADLMRateGen.Helpers.AppMessage.Show(
                             prompt,
                             "Rate Update",
                             MessageBoxButton.YesNo,
@@ -1486,7 +1581,7 @@ namespace ADLMRateGen.ViewModel
 
                 if (issues.Count == 0)
                 {
-                    MessageBox.Show(
+                    ADLMRateGen.Helpers.AppMessage.Show(
                         "✅ Sanity Check PASSED\n\nLibraries + compute file detected.\nAPI reachable.\nMeta endpoint probe passed.",
                         "ADLM RateGen · Sanity Check",
                         MessageBoxButton.OK,
@@ -1495,7 +1590,7 @@ namespace ADLMRateGen.ViewModel
                     return;
                 }
 
-                MessageBox.Show(
+                ADLMRateGen.Helpers.AppMessage.Show(
                     "⚠️ Sanity Check FOUND ISSUES:\n\n- " + string.Join("\n- ", issues),
                     "ADLM RateGen · Sanity Check",
                     MessageBoxButton.OK,
@@ -1555,16 +1650,16 @@ namespace ADLMRateGen.ViewModel
 
                 if (!sheets.Any())
                 {
-                    MessageBox.Show("No data available to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ADLMRateGen.Helpers.AppMessage.Show("No data available to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 ExcelExporter.ExportWorkbook(sheets, sfd.FileName);
-                MessageBox.Show("Export completed.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                ADLMRateGen.Helpers.AppMessage.Show("Export completed.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Export failed:\n{ex.Message}", "Export", MessageBoxButton.OK, MessageBoxImage.Error);
+                ADLMRateGen.Helpers.AppMessage.Show($"Export failed:\n{ex.Message}", "Export", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1603,7 +1698,7 @@ namespace ADLMRateGen.ViewModel
 
                 if (sections.Count == 0)
                 {
-                    MessageBox.Show("No data available to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ADLMRateGen.Helpers.AppMessage.Show("No data available to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1624,11 +1719,11 @@ namespace ADLMRateGen.ViewModel
                 }
 
                 File.WriteAllText(sfd.FileName, sb.ToString(), new UTF8Encoding(true));
-                MessageBox.Show("CSV exported.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                ADLMRateGen.Helpers.AppMessage.Show("CSV exported.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Export failed:\n{ex.Message}", "Export", MessageBoxButton.OK, MessageBoxImage.Error);
+                ADLMRateGen.Helpers.AppMessage.Show($"Export failed:\n{ex.Message}", "Export", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             static string Csv(string s) => $"\"{(s ?? string.Empty).Replace("\"", "\"\"")}\"";
@@ -1724,7 +1819,7 @@ namespace ADLMRateGen.ViewModel
             catch (Exception ex)
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
-                    MessageBox.Show($"Log-out failed\n{ex.Message}"));
+                    ADLMRateGen.Helpers.AppMessage.Show($"Log-out failed\n{ex.Message}"));
             }
         }
 
@@ -1740,7 +1835,7 @@ namespace ADLMRateGen.ViewModel
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Unable to open browser.\n{ex.Message}");
+                ADLMRateGen.Helpers.AppMessage.Show($"Unable to open browser.\n{ex.Message}");
             }
         }
 
