@@ -1,5 +1,46 @@
 # ADLM Rate Gen — Release Notes
 
+## Rate Gen 3.0, build 3.0.2610.1
+
+Everything in 3.0.0, plus one fix to Saved Rates. This is the build staged on
+4 Oct 2026 as "3.0.1", renumbered: Rate Gen keeps its launch version, 3.0,
+through 2026 and each release moves only the build number (Major.Minor.YYMM.N).
+
+### Fixed: custom rates made on the website or another PC were deleted
+
+RateGen never downloaded your custom rates. When it synced (after an edit,
+at sign-in and at sign-out) it treated every rate in your ADLM account that
+was not in this PC's Saved Rates as one you had deleted, and removed it. A
+rate built on the website's custom rate builder, or in RateGen on another
+PC, disappeared at the next sync; a fresh install removed them all.
+
+Now:
+
+- Rates in your account that this PC does not have are **downloaded** into
+  Saved Rates, at sign-in and at every sync, with their own prices, unit and
+  section.
+- A rate is deleted from your account **only when you delete it here**.
+- Only rates you changed here are uploaded. If a rate was edited on the
+  website and you have not touched it here, this PC takes the website's
+  version.
+- A rate missing from your account but still on this PC is uploaded again,
+  unless you deleted it in RateGen on another PC.
+
+Not yet: a plant line on a rate built on the website does not show here, as
+RateGen has no plant line yet. It is kept in your account.
+
+### Technical detail
+
+- `UserRatesCloudSync` syncs custom rates one by one, cloud first, and no
+  longer sends them in the whole-list push. Requests carry
+  `X-ADLM-Rates-Sync: 2`; the server (ADLMWebsite #116) honours this
+  desktop's explicit deletes and refuses older desktops' deletes of rates
+  made elsewhere.
+- Deletions made here are kept in `custom-rates-deleted.json` until the
+  cloud confirms them. `CustomRate` carries `CloudId` (website slug ids),
+  `CloudUnit`, `SectionKey`, `SectionLabel`, `CloudUpdatedAt` and
+  `SyncedSignature`.
+
 ## v3.0.0
 
 RateGen in Richard Enoch's ADLM suite design, with services split into four
