@@ -1,8 +1,10 @@
 # ADLM Rate Gen — Release Notes
 
-## v3.0.1
+## Rate Gen 3.0, build 3.0.2610.1
 
-Everything in 3.0.0, plus one fix to Saved Rates.
+Everything in 3.0.0, plus one fix to Saved Rates. This is the build staged on
+4 Oct 2026 as "3.0.1", renumbered: Rate Gen keeps its launch version, 3.0,
+through 2026 and each release moves only the build number (Major.Minor.YYMM.N).
 
 ### Fixed: custom rates made on the website or another PC were deleted
 
