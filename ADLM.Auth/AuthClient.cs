@@ -360,7 +360,17 @@ namespace ADLMRateGen.ADLM.Auth
             return JsonDocument.Parse(raw);
         }
 
-        public async Task<JsonDocument> PutJsonAsync(string path, object body, CancellationToken ct = default(CancellationToken))
+        public Task<JsonDocument> PutJsonAsync(string path, object body, CancellationToken ct = default(CancellationToken))
+        {
+            return SendJsonAsync(HttpMethod.Put, path, body, ct);
+        }
+
+        /// <summary>
+        /// Sends a JSON body with the signed-in session (refreshed when it has expired) and
+        /// returns the JSON reply. 401/403 throw UnauthorizedAccessException; other failures
+        /// throw the same HTTP error the GET path does.
+        /// </summary>
+        public async Task<JsonDocument> SendJsonAsync(HttpMethod method, string path, object body, CancellationToken ct = default(CancellationToken))
         {
             string at = await GetAccessTokenAsync(ct).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(at)) throw new InvalidOperationException("Not signed in.");
@@ -372,7 +382,7 @@ namespace ADLMRateGen.ADLM.Auth
             {
                 try
                 {
-                    using (var req = new HttpRequestMessage(HttpMethod.Put, url))
+                    using (var req = new HttpRequestMessage(method, url))
                     {
                         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", at);
                         req.Content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -413,7 +423,7 @@ namespace ADLMRateGen.ADLM.Auth
                 }
             }
 
-            throw new TimeoutException("PUT request timed out.");
+            throw new TimeoutException(method.Method + " request timed out.");
         }
 
         public void SignOut()

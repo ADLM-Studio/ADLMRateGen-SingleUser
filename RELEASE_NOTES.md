@@ -1,6 +1,30 @@
 # ADLM Rate Gen — Release Notes
 
-## Rate Gen 3.0, build 3.0.2610.1
+## Rate Gen 3.0.0, build 2610.2
+
+Everything in build 2610.1, plus Price a bill and Save to ADLM Cloud. Rate Gen
+keeps its launch version, 3.0.0, through 2026; this release moves only the
+build number (3.0.2610.2). It was prepared as "3.1.0" and renumbered.
+
+### Price a bill
+
+Open any client's bill of quantities (.xlsx, or .xls on a PC with Excel), in
+their own layout. RateGen finds the description, unit and quantity columns, reads
+each item with the section and headings above it, and ADLM AI proposes one of
+your rates for each measured item, in the same unit only. Nothing is priced until
+you accept it: accept one line, accept every match ADLM AI is 85% or more sure of,
+or search for another rate. Lines with no good match stay unpriced and are listed.
+Totals by section and for the bill. Download Excel saves a copy in the client's
+layout with your rates and amounts filled in, a note on each rate naming the
+RateGen rate, and a summary sheet; the client's file is never changed. Steel
+billed by the kg is offered your per-tonne rates per kg.
+
+Save to ADLM Cloud keeps the bill, priced and unpriced lines, as a RateGen
+project in your ADLM account; saving again from the same bill updates it. Each
+priced line keeps the RateGen rate that priced it. ICMS export comes in a later
+release.
+
+## Rate Gen 3.0.0, build 2610.1
 
 Everything in 3.0.0, plus one fix to Saved Rates. This is the build staged on
 4 Oct 2026 as "3.0.1", renumbered: Rate Gen keeps its launch version, 3.0,
