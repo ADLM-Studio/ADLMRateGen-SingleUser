@@ -1,8 +1,10 @@
 # ADLM Rate Gen — Release Notes
 
-## v3.1.0
+## Rate Gen 3.0.0, build 2610.2
 
-Everything in 3.0.1, plus Price a bill.
+Everything in build 2610.1, plus Price a bill and Save to ADLM Cloud. Rate Gen
+keeps its launch version, 3.0.0, through 2026; this release moves only the
+build number (3.0.2610.2). It was prepared as "3.1.0" and renumbered.
 
 ### Price a bill
 
@@ -22,9 +24,11 @@ project in your ADLM account; saving again from the same bill updates it. Each
 priced line keeps the RateGen rate that priced it. ICMS export comes in a later
 release.
 
-## v3.0.1
+## Rate Gen 3.0.0, build 2610.1
 
-Everything in 3.0.0, plus one fix to Saved Rates.
+Everything in 3.0.0, plus one fix to Saved Rates. This is the build staged on
+4 Oct 2026 as "3.0.1", renumbered: Rate Gen keeps its launch version, 3.0,
+through 2026 and each release moves only the build number (Major.Minor.YYMM.N).
 
 ### Fixed: custom rates made on the website or another PC were deleted
 
