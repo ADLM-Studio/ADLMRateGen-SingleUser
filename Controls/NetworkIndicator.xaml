@@ -1,0 +1,54 @@
+<UserControl x:Class="ADLMRateGen.Controls.NetworkIndicator"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="24" d:DesignWidth="90"
+             ToolTipService.ShowDuration="20000"
+             ToolTipService.InitialShowDelay="300">
+    <!-- Network signal indicator: four bars for the round trip to ADLM Cloud,
+         a short label, and the detail (Wi-Fi, last check) in the tooltip.
+         Colour of the lit bars is semantic (green / amber / red) and the same in
+         both themes; the unlit bars and the label take the control's Foreground,
+         so the host page sets one DynamicResource and the widget follows it. -->
+    <Button x:Name="Root"
+            Background="Transparent"
+            BorderThickness="0"
+            Padding="6,3"
+            Cursor="Hand"
+            Focusable="False"
+            Click="OnClick">
+        <Button.Template>
+            <ControlTemplate TargetType="Button">
+                <Border x:Name="Surface"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="8"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Surface" Property="Background" Value="#1A808080" />
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Button.Template>
+        <StackPanel Orientation="Horizontal">
+            <Canvas Width="17" Height="14" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                <Rectangle x:Name="Bar1" Canvas.Left="0"   Canvas.Bottom="0" Width="3" Height="5"  RadiusX="1" RadiusY="1" />
+                <Rectangle x:Name="Bar2" Canvas.Left="4.7" Canvas.Bottom="0" Width="3" Height="8"  RadiusX="1" RadiusY="1" />
+                <Rectangle x:Name="Bar3" Canvas.Left="9.4" Canvas.Bottom="0" Width="3" Height="11" RadiusX="1" RadiusY="1" />
+                <Rectangle x:Name="Bar4" Canvas.Left="14"  Canvas.Bottom="0" Width="3" Height="14" RadiusX="1" RadiusY="1" />
+                <!-- Drawn across the bars when there is no connection at all. -->
+                <Line x:Name="OfflineSlash" X1="1" Y1="13" X2="16" Y2="1" StrokeThickness="1.6"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
+            </Canvas>
+            <TextBlock x:Name="Label"
+                       Margin="6,0,0,0"
+                       FontSize="11"
+                       VerticalAlignment="Center"
+                       Text="Checking" />
+        </StackPanel>
+    </Button>
+</UserControl>

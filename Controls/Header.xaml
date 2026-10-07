@@ -5,6 +5,7 @@
              xmlns:conv="clr-namespace:ADLMRateGen.Converters"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:services="clr-namespace:ADLMRateGen.Services"
+             xmlns:controls="clr-namespace:ADLMRateGen.Controls"
              xmlns:fa="clr-namespace:FontAwesome.Sharp;assembly=FontAwesome.Sharp"
              mc:Ignorable="d"
              Height="56"
@@ -206,6 +207,13 @@
                 <StackPanel Orientation="Horizontal"
                             Margin="0,0,10,0"
                             VerticalAlignment="Center">
+                    <!-- Network indicator: signal bars for the round trip to ADLM
+                         Cloud, online/offline, Wi-Fi in the tooltip. Sits beside
+                         Sync from Cloud because that is the button it predicts. -->
+                    <controls:NetworkIndicator Foreground="{DynamicResource Blue900Brush}"
+                                               FontFamily="{DynamicResource PoppinsFont}"
+                                               Margin="0,0,6,0"
+                                               VerticalAlignment="Center" />
                     <!-- Sync from Cloud — moved here from the sidebar so every
                          app-wide action sits in one group. -->
                     <Button Margin="0,0,2,0"
