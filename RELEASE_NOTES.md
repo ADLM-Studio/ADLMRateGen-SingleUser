@@ -1,5 +1,30 @@
 # ADLM Rate Gen — Release Notes
 
+## Rate Gen 3.0, build 3.0.2610.3 — October 2026
+
+Everything in build 2610.2, plus two fixes. Rate Gen keeps its launch version,
+3.0, through 2026; this release moves only the build number (3.0.2610.3).
+
+### Fixed: you can delete the materials and labour you added
+
+Rate Gen refused to delete a material or labour item you had added yourself,
+treating it as one of ADLM's defaults. Now a row is yours whenever ADLM never
+shipped it, and you can delete it: open the item, and while you are editing it
+a delete icon appears in the sheet header, next to the close button. ADLM's
+default materials and labour still cannot be deleted; they show no delete icon
+and are refused if you try. A delete made here is removed from your ADLM
+account too.
+
+### Fixed: Build with AI blocked by a stale development token on the PC
+
+A leftover development token (an `ADLM_AI_TOKEN` environment variable) on the
+PC was sent in place of your signed-in licence, so every Build with AI click
+answered "Sign in again to use AI features" and signing in again did not help.
+An installed Rate Gen now uses only your signed-in licence, removes that
+leftover variable at start-up, and if the AI service does reject the licence
+it retries once after refreshing your session before asking you to sign out
+and sign in again.
+
 ## Rate Gen 3.0, build 3.0.2610.2
 
 Everything in build 2610.1, plus Price a bill and Save to ADLM Cloud. Rate Gen
