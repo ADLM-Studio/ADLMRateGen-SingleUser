@@ -90,6 +90,7 @@ namespace ADLMRateGen.ViewModel
             ApplyFilter();
 
             MaterialPriceViewModel.MaterialSaved += AddOrUpdateMaterial;
+            MaterialPriceViewModel.MaterialDeleteRequested += DeleteFromSheet;
             MaterialCollectionView.Filter = _ => true;
 
             // Public builds read from the local library file and use API sync for cloud updates.
@@ -180,14 +181,32 @@ namespace ADLMRateGen.ViewModel
             ApplyFilter();
         }
 
-        private async void DeleteMaterial(object parameter)
+        /// <summary>
+        /// The delete control on the edit sheet. The sheet closes first, so the
+        /// library's own messages are not shown underneath it.
+        /// </summary>
+        private void DeleteFromSheet(MaterialModel material)
+        {
+            (Application.Current?.MainWindow as MainWindow)?.PopupHost.Hide();
+            DeleteMaterial(material);
+        }
+
+        /// <summary>
+        /// Delete a material the user added. Reached from the edit sheet, the
+        /// row's context menu and the Delete key, and the rule is the same on
+        /// every route: one of ADLM's defaults is refused, in words, whatever
+        /// asked. Removes the row here, saves the file, and takes it out of the
+        /// user's library in their ADLM account by the same path that put it
+        /// there, so the next sync does not bring it back.
+        /// </summary>
+        public void DeleteMaterial(object? parameter)
         {
             if (parameter is not MaterialModel material) return;
 
-            // only user-added rows are deletable
-            if (!ADLMRateGen.Services.UserRowChecker.IsUserMaterial(material.SerialNumber, material.MaterialName ?? ""))
+            if (!UserRowChecker.IsUserMaterial(material))
             {
-                ADLMRateGen.Helpers.AppMessage.Show("Only your own added materials can be deleted.\nMaster items cannot be removed.",
+                ADLMRateGen.Helpers.AppMessage.Show(
+                    "This is one of ADLM's default materials, so it cannot be deleted. Only materials you added yourself can be removed.",
                     "Not allowed", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -335,11 +354,21 @@ namespace ADLMRateGen.ViewModel
         //}
 
 
+        /// <summary>
+        /// Update prices, on the library's bar. Goes through
+        /// <see cref="MasterLibrarySyncService"/>, the same sync F5 runs, which
+        /// asks the ADLM profile where the account prices from before it asks for
+        /// prices. This used to send the zone remembered on this PC, which stayed
+        /// the OLD location until the next sign-in: a user who changed state on
+        /// the website, came here and pressed this got the same prices back and
+        /// a message saying they were updated. Both libraries reload from the
+        /// shell when the sync lands, whichever tab is open.
+        /// </summary>
         private async void UpdatePricesFromMongo()
         {
             var result = ADLMRateGen.Helpers.AppMessage.Show(
-                "Override prices with ADLM server values for your current zone?",
-                "Confirm",
+                "Bring prices up to date from ADLM for the location on your profile? Prices you set yourself are kept.",
+                "Update prices",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -354,30 +383,20 @@ namespace ADLMRateGen.ViewModel
                 return;
             }
 
-            string zone = ADLMRateGen.Properties.AppSettings.Zone ?? "";
-            if (string.IsNullOrWhiteSpace(zone))
-            {
-                ADLMRateGen.Helpers.AppMessage.Show("No user zone set. Please sign in again to sync your zone profile.");
-                return;
-            }
-
-            BusyChanged?.Invoke(true, "Updating material prices from server…");
+            BusyChanged?.Invoke(true, "Updating prices from ADLM for the location on your profile…");
 
             try
             {
-                var auth = ADLMRateGen.Services.AuthProvider.Instance.Client;
-
                 // refresh user rows (another device could have added)
                 await UserLibrarySync.Instance.LoadAsync();
 
-                var masterDoc = await auth.GetJsonAsync($"/rategen/master?zone={Uri.EscapeDataString(zone)}");
-                var root = masterDoc.RootElement;
-
-                if (root.TryGetProperty("materials", out var mats))
-                    ADLMRateGen.Services.DataSourceCloudSync.SaveMaterialsFromDto(mats);
+                var sync = await MasterLibrarySyncService.SyncAsync();
 
                 ReloadFromDisk();
-                ADLMRateGen.Helpers.AppMessage.Show($"Material prices updated for zone '{zone}'.");
+                ADLMRateGen.Helpers.AppMessage.Show(sync.Ok
+                    ? $"Prices updated for {sync.Zone}: {sync.Materials} materials, {sync.Labours} labour rates."
+                    : sync.Message,
+                    "Update prices", MessageBoxButton.OK, sync.Ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
             catch (UnauthorizedAccessException)
             {

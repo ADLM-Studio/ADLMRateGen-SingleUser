@@ -82,6 +82,28 @@ namespace ADLMRateGen.Services
 
         public static bool Exists => File.Exists(MaterialsFile) || File.Exists(LabourFile);
 
+        /// <summary>
+        /// The rows the server sent last time, as name|unit keys, or null when
+        /// that library has never been synced. This is what "ADLM's defaults"
+        /// means to <see cref="UserRowChecker"/>: a row that is not in here, and
+        /// not in the bundled catalogue either, is one the user added.
+        /// </summary>
+        public static ISet<string>? MaterialKeys() => Keys(MaterialsFile);
+        public static ISet<string>? LabourKeys() => Keys(LabourFile);
+
+        private static ISet<string>? Keys(string path)
+        {
+            if (!File.Exists(path)) return null;
+            var set = UserRowChecker.NewKeySet();
+            try
+            {
+                var rows = JsonSerializer.Deserialize<List<Row>>(File.ReadAllText(path)) ?? new List<Row>();
+                foreach (var r in rows) set.Add(UserRowChecker.Key(r.N, r.U));
+            }
+            catch { }
+            return set;
+        }
+
         private sealed class Row
         {
             public string N { get; set; } = "";

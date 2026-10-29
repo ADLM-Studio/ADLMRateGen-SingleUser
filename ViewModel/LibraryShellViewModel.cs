@@ -368,6 +368,24 @@ namespace ADLMRateGen.ViewModel
 
 			PriceConflicts.Changed += RaiseConflictState;
 			RefreshArchives();
+
+			// Every master price sync, from F5 or either library's Update prices,
+			// lands in both tables and in the location note, whichever tab is open.
+			// The sync finishes off the UI thread.
+			MasterLibrarySyncService.Synced += _ =>
+			{
+				var d = Application.Current?.Dispatcher;
+				if (d != null && !d.CheckAccess()) { d.Invoke(OnMasterPricesSynced); return; }
+				OnMasterPricesSynced();
+			};
+		}
+
+		private void OnMasterPricesSynced()
+		{
+			MaterialLibraryViewModel.ReloadFromDisk();
+			LabourLibraryViewModel.ReloadFromDisk();
+			RefreshLocationNote();
+			RefreshArchives();   // the sync archived the library before writing it
 		}
 	}
 }

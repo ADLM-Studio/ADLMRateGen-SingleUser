@@ -29,14 +29,15 @@
                 <TextBlock Style="{StaticResource SxH1}" Text="Library" />
                 <TextBlock Style="{StaticResource SxLede}" MaxWidth="720" HorizontalAlignment="Left"
                            Text="The material and labour prices every rate is built from. Fed from ADLM; your own prices stay on this PC." />
-                <!-- Pricing location is set on the ADLM website, on your profile, and
-                     arrives here on the next sign-in. The note says which zone the
-                     prices come from, so the answer is on the screen. -->
+                <!-- Pricing location is set on the ADLM website, on your profile.
+                     Sync from Cloud (F5) and Update prices read it from the profile and
+                     price from it at once. The note says which zone the prices come
+                     from, so the answer is on the screen. -->
                 <DockPanel Margin="0,8,0,0">
                     <ContentControl Style="{StaticResource SxIcSm}" Tag="{StaticResource Ic.Profile}"
                                     Foreground="{DynamicResource SxInk3}" Margin="0,0,6,0" />
                     <TextBlock Style="{StaticResource SxMuted}" FontSize="12" Text="{Binding LocationNote}"
-                               ToolTip="Set your pricing location on your ADLM profile on the website. It applies here on your next sign-in." />
+                               ToolTip="Set your pricing location on your ADLM profile on the website, then Sync from Cloud (F5) or Update prices to price from it straight away." />
                 </DockPanel>
             </StackPanel>
             <Button Grid.Column="1" Style="{StaticResource SxBtnAdd}" VerticalAlignment="Top"
