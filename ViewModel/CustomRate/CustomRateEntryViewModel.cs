@@ -419,9 +419,14 @@ namespace ADLMRateGen.ViewModel.CustomRate
             var addedToLibrary = 0;
             try
             {
-                addedToLibrary = RateLineLibrary.Harvest(MaterialItems, LabourItems);
+                addedToLibrary = RateLineLibrary.Harvest(MaterialItems, LabourItems, out var newMaterials, out var newLabours);
                 if (addedToLibrary > 0)
+                {
                     RefreshLookups();
+                    // Into the account as well, by the same path the Add sheet uses,
+                    // or the next sign-in sync drops them. Queued if offline.
+                    _ = Services.UserLibrarySync.Instance.TryAddAsync(newMaterials, newLabours);
+                }
             }
             catch (Exception ex)
             {

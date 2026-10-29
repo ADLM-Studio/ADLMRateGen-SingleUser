@@ -19,6 +19,13 @@ namespace ADLMRateGen.ViewModel
         public event Action<LabourModel> LabourSaved;
         public event Action<bool, string?>? BusyChanged;
 
+        /// <summary>
+        /// Raised when the user presses the sheet's delete control. The labour
+        /// library view model does the deleting (rows, file and cloud copy).
+        /// Static so exactly one subscriber handles it however the sheet was opened.
+        /// </summary>
+        public static event Action<LabourModel>? LabourDeleteRequested;
+
         public string LabourName
         {
             get => _labourName;
@@ -137,21 +144,43 @@ namespace ADLMRateGen.ViewModel
                     RaisePropertyChanged(nameof(IsEditing));
                     ((DelegateCommand)SaveLabourCommand).RaiseCanExecuteChanged();
                     ((DelegateCommand)UpdateLabourCommand).RaiseCanExecuteChanged();
+                    CanDelete = value != null && UserRowChecker.IsUserLabour(value);
                 }
             }
         }
         public bool IsEditing => EditingLabour != null;
 
+        private bool _canDelete;
+
+        /// <summary>
+        /// True only while editing a labour item the user added themselves. One
+        /// of ADLM's defaults shows no delete control, and the command refuses
+        /// it too. The rule is <see cref="UserRowChecker"/>'s.
+        /// </summary>
+        public bool CanDelete
+        {
+            get => _canDelete;
+            private set
+            {
+                if (_canDelete == value) return;
+                _canDelete = value;
+                RaisePropertyChanged();
+                ((DelegateCommand)DeleteLabourCommand).RaiseCanExecuteChanged();
+            }
+        }
+
         public ICommand SaveLabourCommand { get; }
         public ICommand UpdateLabourCommand { get; }
+        public ICommand DeleteLabourCommand { get; }
 
         public LabourPriceViewModel()
         {
             _newLabourCategory = string.Empty;
             _newLabourNote = string.Empty;
-            EditingLabour = null;
             SaveLabourCommand = new DelegateCommand(o => SaveLabour(), o => !IsEditing);
             UpdateLabourCommand = new DelegateCommand(o => UpdateLabour(), o => IsEditing);
+            DeleteLabourCommand = new DelegateCommand(o => DeleteLabour(), o => CanDelete);
+            EditingLabour = null;
 
             // Keep CurrencyLabel up to date when currency changes
             CurrencyService.Instance.PropertyChanged += (_, e) =>
@@ -214,6 +243,18 @@ namespace ADLMRateGen.ViewModel
                 ClearInputFields();
                 EditingLabour = null;
             }
+        }
+
+        /* ───────── delete, user-added rows only ───────── */
+        private void DeleteLabour()
+        {
+            var target = EditingLabour;
+            // Checked again here, not only in CanExecute: a default never leaves this method.
+            if (target == null || !UserRowChecker.IsUserLabour(target)) return;
+
+            ClearInputFields();
+            EditingLabour = null;
+            LabourDeleteRequested?.Invoke(target);
         }
 
         private void ClearInputFields()

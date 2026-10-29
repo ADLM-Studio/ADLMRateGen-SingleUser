@@ -18,6 +18,14 @@ namespace ADLMRateGen.ViewModel
         // Event raised when a new material is saved or an existing one is updated.
         public static event Action<MaterialModel>? MaterialSaved;
 
+        /// <summary>
+        /// Raised when the user presses the sheet's delete control. The library
+        /// view model does the deleting; it is the one that owns the rows, the
+        /// file and the cloud copy. Static, like MaterialSaved, so exactly one
+        /// subscriber handles it however the sheet was opened.
+        /// </summary>
+        public static event Action<MaterialModel>? MaterialDeleteRequested;
+
         public string? MaterialName
         {
             get => _materialName;
@@ -88,18 +96,41 @@ namespace ADLMRateGen.ViewModel
                     RaisePropertyChanged(nameof(IsEditing));
                     ((DelegateCommand)SaveMaterialCommand).RaiseCanExecuteChanged();
                     ((DelegateCommand)UpdateMaterialCommand).RaiseCanExecuteChanged();
+                    CanDelete = value != null && UserRowChecker.IsUserMaterial(value);
                 }
             }
         }
         public bool IsEditing => EditingMaterial != null;
 
+        private bool _canDelete;
+
+        /// <summary>
+        /// True only while editing a material the user added themselves. One of
+        /// ADLM's defaults shows no delete control at all, and the command
+        /// refuses it as well, so there is no second way in. The rule is
+        /// <see cref="UserRowChecker"/>'s.
+        /// </summary>
+        public bool CanDelete
+        {
+            get => _canDelete;
+            private set
+            {
+                if (_canDelete == value) return;
+                _canDelete = value;
+                RaisePropertyChanged();
+                ((DelegateCommand)DeleteMaterialCommand).RaiseCanExecuteChanged();
+            }
+        }
+
         public ICommand SaveMaterialCommand { get; }
         public ICommand UpdateMaterialCommand { get; }
+        public ICommand DeleteMaterialCommand { get; }
 
         public MaterialPriceViewModel()
         {
             SaveMaterialCommand = new DelegateCommand(o => SaveMaterial(), o => !IsEditing);
             UpdateMaterialCommand = new DelegateCommand(o => UpdateMaterial(), o => IsEditing);
+            DeleteMaterialCommand = new DelegateCommand(o => DeleteMaterial(), o => CanDelete);
 
             // Keep CurrencyLabel up to date when currency changes
             CurrencyService.Instance.PropertyChanged += (_, e) =>
@@ -159,6 +190,18 @@ namespace ADLMRateGen.ViewModel
             MaterialSaved?.Invoke(EditingMaterial);
             ClearInputs();
             EditingMaterial = null;
+        }
+
+        /* ───────── delete, user-added rows only ───────── */
+        private void DeleteMaterial()
+        {
+            var target = EditingMaterial;
+            // Checked again here, not only in CanExecute: a default never leaves this method.
+            if (target == null || !UserRowChecker.IsUserMaterial(target)) return;
+
+            ClearInputs();
+            EditingMaterial = null;
+            MaterialDeleteRequested?.Invoke(target);
         }
 
         private void ClearInputs()

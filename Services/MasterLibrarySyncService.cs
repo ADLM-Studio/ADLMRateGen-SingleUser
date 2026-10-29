@@ -29,6 +29,12 @@ namespace ADLMRateGen.Services
             public string Message { get; set; } = string.Empty;
         }
 
+        /// <summary>
+        /// Raised after a sync has written both libraries, so every screen that
+        /// shows them reloads, whichever button started the sync.
+        /// </summary>
+        public static event Action<SyncResult>? Synced;
+
         public static string ResolveZone()
         {
             var zone = AppSettings.Zone;
@@ -80,16 +86,32 @@ namespace ADLMRateGen.Services
                 return result;
             }
 
-            // Deliberately asks for "my prices" without naming a state.
+            // The pricing location lives on the ADLM profile and nowhere else, so
+            // ask the profile first and price from exactly what it says.
             //
-            // The pricing location lives on the ADLM profile and nowhere else. The
-            // server already falls back to the account's state, so sending one from
-            // here would let a stale local setting silently override the profile,
-            // which is exactly what having a single source of truth is meant to
-            // prevent. The install used to ship with this setting defaulted to
-            // "Lagos", so that override would have hit every user who had never
-            // touched it.
-            using (var doc = await auth.GetJsonAsync("/rategen/master", ct))
+            // This used to ask for "my prices" without naming a state and let the
+            // server fall back to the account's. That fallback reads the state
+            // from the access token's claims, minted at sign-in, so a location
+            // changed on the website since then was invisible to it: Sync from
+            // Cloud ran, reported success, and brought back the old location's
+            // prices until the user signed out and in again. /me/profile reads
+            // the database. Sending its state is not a local setting overriding
+            // the account, which is what this path was built to prevent; it IS
+            // the account, read a moment ago. When the profile cannot be read the
+            // request goes without a state, as before.
+            var profileState = await ReadProfileStateAsync(auth, ct);
+            if (profileState != null)
+            {
+                SetState(profileState);
+                result.State = profileState;
+                result.Zone = NigerianStates.Find(profileState)?.Label ?? result.Zone;
+            }
+
+            var path = profileState == null
+                ? "/rategen/master"
+                : "/rategen/master?state=" + Uri.EscapeDataString(profileState);
+
+            using (var doc = await auth.GetJsonAsync(path, ct))
             {
                 var root = doc.RootElement;
 
@@ -142,7 +164,42 @@ namespace ADLMRateGen.Services
             result.Message = result.Ok
                 ? $"Master prices for '{result.Zone}': {result.Materials} materials, {result.Labours} labour rates."
                 : $"No master prices returned for zone '{result.Zone}'.";
+
+            if (result.Ok)
+            {
+                try { Synced?.Invoke(result); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[MasterLibrarySync] Synced handler: {ex.Message}"); }
+            }
             return result;
+        }
+
+        /// <summary>
+        /// The state on the ADLM profile, as a key the server recognises, or null
+        /// when the profile has none set or cannot be read right now. Only the
+        /// state is read: the profile's "zone" is the geopolitical zone derived
+        /// from it, which is not a state and would not normalise to one.
+        /// </summary>
+        public static Task<string?> ReadProfileStateAsync(CancellationToken ct = default)
+        {
+            var auth = AuthProvider.Instance.Client;
+            if (auth == null || !auth.HasSession) return Task.FromResult<string?>(null);
+            return ReadProfileStateAsync(auth, ct);
+        }
+
+        private static async Task<string?> ReadProfileStateAsync(ADLM.Auth.AuthClient auth, CancellationToken ct)
+        {
+            try
+            {
+                using var doc = await auth.GetJsonAsync("/me/profile", ct);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object) return null;
+                if (!root.TryGetProperty("state", out var st) || st.ValueKind != JsonValueKind.String) return null;
+                return NigerianStates.Normalize(st.GetString());
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

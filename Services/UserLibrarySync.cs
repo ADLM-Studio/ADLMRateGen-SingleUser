@@ -29,10 +29,16 @@ namespace ADLMRateGen.Services
             }
         }
 
+        private static string CacheFile => Path.Combine(UserDataFolder, "user-library.json");
+
         private readonly object _gate = new();
         private int _version = 0;
         private readonly List<RateRow> _myMaterials = new();
         private readonly List<RateRow> _myLabour = new();
+
+        // See UserLibraryCache: a change made here that the account has not got yet.
+        private bool _pendingPush;
+        private string _owner = "";
 
         private sealed class RateItemDto
         {
@@ -61,7 +67,74 @@ namespace ADLMRateGen.Services
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        private UserLibrarySync() { }
+        private UserLibrarySync()
+        {
+            // Start from what was known last time, pending changes included, so
+            // an offline session's adds and deletes are not forgotten at restart.
+            var cache = UserLibraryCache.Load(CacheFile);
+            if (cache == null) return;
+            lock (_gate)
+            {
+                _owner = cache.owner ?? "";
+                _version = cache.version;
+                _pendingPush = cache.pendingPush;
+                _myMaterials.AddRange(cache.materials.Select(r => new RateRow(r.sn, r.description, r.unit, r.price, r.category, r.note)));
+                _myLabour.AddRange(cache.labour.Select(r => new RateRow(r.sn, r.description, r.unit, r.price, r.category, r.note)));
+            }
+        }
+
+        /// <summary>A change on this PC has not reached the account yet.</summary>
+        public bool HasPendingChanges { get { lock (_gate) return _pendingPush; } }
+
+        private void SaveCache()
+        {
+            UserLibraryCache snap;
+            lock (_gate)
+            {
+                snap = new UserLibraryCache
+                {
+                    owner = _owner,
+                    version = _version,
+                    pendingPush = _pendingPush,
+                    materials = _myMaterials.Select(r => new UserLibraryCache.Row { sn = r.sn, description = r.description, unit = r.unit, price = r.price, category = r.category, note = r.note }).ToList(),
+                    labour = _myLabour.Select(r => new UserLibraryCache.Row { sn = r.sn, description = r.description, unit = r.unit, price = r.price, category = r.category, note = r.note }).ToList(),
+                };
+            }
+            snap.Save(CacheFile);
+        }
+
+        private void MarkPending()
+        {
+            lock (_gate) _pendingPush = true;
+            SaveCache();
+        }
+
+        /// <summary>
+        /// Make the cache the signed-in account's. One recorded for a different
+        /// account is dropped, pending or not: its rows must never be pushed into
+        /// this account's library.
+        /// </summary>
+        private void AdoptOwner(AuthClient auth)
+        {
+            string? me = null;
+            try { me = Helpers.JwtHelper.GetUserId(auth.AccessToken); } catch { }
+            if (string.IsNullOrEmpty(me)) return;
+
+            bool dropped = false;
+            lock (_gate)
+            {
+                if (!string.IsNullOrEmpty(_owner) && !string.Equals(_owner, me, StringComparison.Ordinal))
+                {
+                    _myMaterials.Clear();
+                    _myLabour.Clear();
+                    _version = 0;
+                    _pendingPush = false;
+                    dropped = true;
+                }
+                _owner = me;
+            }
+            if (dropped) SaveCache();
+        }
 
         public IReadOnlyList<(int sn, string description, string unit, decimal price, string? category)> MyMaterials
         {
@@ -79,6 +152,17 @@ namespace ADLMRateGen.Services
             {
                 var auth = AuthProvider.Instance.Client;
                 if (!auth.HasSession) return;
+
+                AdoptOwner(auth);
+
+                // Anything changed here while the account was out of reach goes up
+                // before the account's copy is read, or the read would overwrite
+                // it and the change would be lost. Still unreachable: keep ours.
+                if (HasPendingChanges)
+                {
+                    await PushAsync();
+                    if (HasPendingChanges) return;
+                }
 
                 using var doc = await auth.GetJsonAsync("/rategen/library");
                 var root = doc.RootElement;
@@ -121,12 +205,43 @@ namespace ADLMRateGen.Services
                     _version = ver;
                     _myMaterials.Clear(); _myMaterials.AddRange(mats);
                     _myLabour.Clear(); _myLabour.AddRange(labs);
+                    _pendingPush = false;
                 }
+                SaveCache();
             }
             catch
             {
                 // best-effort
             }
+        }
+
+        /// <summary>
+        /// Rows harvested from a saved rate, in one push. These used to be added
+        /// to the library on this PC only, so the next sign-in sync, which rebuilds
+        /// the library from the master plus the account's rows, dropped them.
+        /// </summary>
+        public async Task TryAddAsync(IEnumerable<MaterialModel>? materials, IEnumerable<LabourModel>? labours)
+        {
+            var any = false;
+            lock (_gate)
+            {
+                foreach (var m in materials ?? Enumerable.Empty<MaterialModel>())
+                {
+                    _myMaterials.RemoveAll(r => r.sn == m.SerialNumber);
+                    _myMaterials.Add(new RateRow(m.SerialNumber, m.MaterialName ?? "", m.MaterialUnit ?? "", m.MaterialPrice,
+                        string.IsNullOrWhiteSpace(m.MaterialCategory) ? null : m.MaterialCategory));
+                    any = true;
+                }
+                foreach (var l in labours ?? Enumerable.Empty<LabourModel>())
+                {
+                    _myLabour.RemoveAll(r => r.sn == l.SerialNumber);
+                    _myLabour.Add(new RateRow(l.SerialNumber, l.LabourName ?? "", l.LabourUnit ?? "", l.LabourPrice,
+                        string.IsNullOrWhiteSpace(l.LabourCategory) ? null : l.LabourCategory,
+                        string.IsNullOrWhiteSpace(l.LabourNote) ? null : l.LabourNote));
+                    any = true;
+                }
+            }
+            if (any) await PushAsync();
         }
 
         public async Task TryAddMaterialAsync(MaterialModel m)
@@ -204,7 +319,9 @@ namespace ADLMRateGen.Services
             try
             {
                 var auth = AuthProvider.Instance.Client;
-                if (!auth.HasSession) return;
+                if (!auth.HasSession) { MarkPending(); return; }
+
+                AdoptOwner(auth);
 
                 int ver;
                 List<RateRow> mats;
@@ -227,7 +344,8 @@ namespace ADLMRateGen.Services
                 using var doc = await auth.PutJsonAsync("/rategen/library", payload);
                 var root = doc.RootElement;
                 var newVer = root.TryGetProperty("version", out var v) && v.TryGetInt32(out var vv) ? vv : ver;
-                lock (_gate) _version = newVer;
+                lock (_gate) { _version = newVer; _pendingPush = false; }
+                SaveCache();
             }
             catch (InvalidOperationException ex) when (ex.Message.StartsWith("409"))
             {
@@ -245,7 +363,9 @@ namespace ADLMRateGen.Services
             }
             catch
             {
-                // best-effort
+                // The account could not be reached. The change stays here, marked
+                // pending, and goes up before the next read of the account.
+                MarkPending();
             }
         }
 

@@ -98,6 +98,7 @@ namespace ADLMRateGen.ViewModel
 
             DeleteLabourCommand = new DelegateCommand(o => DeleteLabour(o));
             EditLabourCommand = new DelegateCommand(o => EditLabour(o));
+            LabourPriceViewModel.LabourDeleteRequested += DeleteFromSheet;
 
             UpdatePricesCommand = new DelegateCommand(_ => UpdatePricesFromMongo());
 
@@ -173,13 +174,31 @@ namespace ADLMRateGen.ViewModel
                 EditLabourRequested?.Invoke(labour);
         }
 
-        private async void DeleteLabour(object parameter)
+        /// <summary>
+        /// The delete control on the edit sheet. The sheet closes first, so the
+        /// library's own messages are not shown underneath it.
+        /// </summary>
+        private void DeleteFromSheet(LabourModel labour)
+        {
+            (Application.Current?.MainWindow as MainWindow)?.PopupHost.Hide();
+            DeleteLabour(labour);
+        }
+
+        /// <summary>
+        /// Delete a labour item the user added. Same rule on every route in (the
+        /// edit sheet, the row's context menu, the Delete key): one of ADLM's
+        /// defaults is refused in words. Removes the row, saves the file, and
+        /// takes it out of the user's library in their ADLM account by the same
+        /// path that put it there, so the next sync does not bring it back.
+        /// </summary>
+        public void DeleteLabour(object? parameter)
         {
             if (parameter is not LabourModel labour) return;
 
-            if (!ADLMRateGen.Services.UserRowChecker.IsUserLabour(labour.SerialNumber, labour.LabourName ?? ""))
+            if (!UserRowChecker.IsUserLabour(labour))
             {
-                ADLMRateGen.Helpers.AppMessage.Show("Only your own added labour/plant items can be deleted.\nMaster items cannot be removed.",
+                ADLMRateGen.Helpers.AppMessage.Show(
+                    "This is one of ADLM's default labour items, so it cannot be deleted. Only labour and plant items you added yourself can be removed.",
                     "Not allowed", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -312,11 +331,17 @@ namespace ADLMRateGen.ViewModel
         //    }
         //}
 
+        /// <summary>
+        /// Update prices, on the library's bar. Same path as the material tab and
+        /// F5: <see cref="MasterLibrarySyncService"/> asks the ADLM profile where
+        /// the account prices from, then prices from there. It used to send the
+        /// zone remembered on this PC, the old location until the next sign-in.
+        /// </summary>
         private async void UpdatePricesFromMongo()
         {
             var result = ADLMRateGen.Helpers.AppMessage.Show(
-                "Override labour prices with ADLM server values for your current zone?",
-                "Confirm",
+                "Bring prices up to date from ADLM for the location on your profile? Prices you set yourself are kept.",
+                "Update prices",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -330,29 +355,19 @@ namespace ADLMRateGen.ViewModel
                 return;
             }
 
-            string zone = ADLMRateGen.Properties.AppSettings.Zone ?? "";
-            if (string.IsNullOrWhiteSpace(zone))
-            {
-                ADLMRateGen.Helpers.AppMessage.Show("No user zone set. Please sign in again to sync your zone profile.");
-                return;
-            }
-
-            BusyChanged?.Invoke(true, "Updating labour prices from server…");
+            BusyChanged?.Invoke(true, "Updating prices from ADLM for the location on your profile…");
 
             try
             {
-                var auth = ADLMRateGen.Services.AuthProvider.Instance.Client;
-
                 await UserLibrarySync.Instance.LoadAsync();
 
-                var masterDoc = await auth.GetJsonAsync($"/rategen/master?zone={Uri.EscapeDataString(zone)}");
-                var root = masterDoc.RootElement;
-
-                if (root.TryGetProperty("labour", out var labs))
-                    ADLMRateGen.Services.DataSourceCloudSync.SaveLaboursFromDto(labs);
+                var sync = await MasterLibrarySyncService.SyncAsync();
 
                 ReloadFromDisk();
-                ADLMRateGen.Helpers.AppMessage.Show($"Labour prices updated for zone '{zone}'.");
+                ADLMRateGen.Helpers.AppMessage.Show(sync.Ok
+                    ? $"Prices updated for {sync.Zone}: {sync.Materials} materials, {sync.Labours} labour rates."
+                    : sync.Message,
+                    "Update prices", MessageBoxButton.OK, sync.Ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
             catch (UnauthorizedAccessException)
             {

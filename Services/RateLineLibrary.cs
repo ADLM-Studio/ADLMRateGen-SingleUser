@@ -99,17 +99,30 @@ namespace ADLMRateGen.Services
         public static int Harvest(
             IEnumerable<RateEntryItem>? materialItems,
             IEnumerable<RateEntryItem>? labourItems)
+            => Harvest(materialItems, labourItems, out _, out _);
+
+        /// <summary>
+        /// As above, and hands back the rows it created, so the caller can put
+        /// them in the user's ADLM library too. The library on this PC is rebuilt
+        /// from the master plus the account's rows at every sign-in sync, so a
+        /// harvested row that only ever existed here was gone by the next day.
+        /// </summary>
+        public static int Harvest(
+            IEnumerable<RateEntryItem>? materialItems,
+            IEnumerable<RateEntryItem>? labourItems,
+            out List<MaterialModel> addedMaterials,
+            out List<LabourModel> addedLabours)
         {
-            var newMaterials = CollectMaterials(materialItems);
-            var newLabours = CollectLabours(labourItems);
+            addedMaterials = CollectMaterials(materialItems);
+            addedLabours = CollectLabours(labourItems);
 
-            if (newMaterials.Count > 0)
-                MaterialLibraryService.AddOrUpdateMaterials(newMaterials);
+            if (addedMaterials.Count > 0)
+                MaterialLibraryService.AddOrUpdateMaterials(addedMaterials);
 
-            if (newLabours.Count > 0)
-                LabourLibraryService.AddOrUpdateLabours(newLabours);
+            if (addedLabours.Count > 0)
+                LabourLibraryService.AddOrUpdateLabours(addedLabours);
 
-            return newMaterials.Count + newLabours.Count;
+            return addedMaterials.Count + addedLabours.Count;
         }
 
         private static List<MaterialModel> CollectMaterials(IEnumerable<RateEntryItem>? items)
