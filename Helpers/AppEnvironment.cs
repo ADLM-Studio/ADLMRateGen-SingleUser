@@ -11,6 +11,21 @@ namespace ADLMRateGen.Helpers
 
         private const string RetiredApiHost = "adlmweb.onrender.com";
 
+        /// <summary>The developer's AI token override. See <see cref="AiServiceTokenOverride"/>.</summary>
+        public const string AiTokenOverrideVariable = "ADLM_AI_TOKEN";
+
+        /// <summary>
+        /// True in a Debug build. The one switch that decides whether developer
+        /// overrides such as ADLM_AI_TOKEN are honoured at all; an installed copy
+        /// is a Release build and never sees them.
+        /// </summary>
+        public static bool IsDevelopmentBuild =>
+#if DEBUG
+            true;
+#else
+            false;
+#endif
+
         /// <summary>
         /// API host, resolved from configuration rather than compiled in.
         ///
@@ -59,8 +74,9 @@ namespace ADLMRateGen.Helpers
         /// false/0) disables the feature deliberately and hides the panel, which
         /// is now the only way it can disappear.
         ///
-        /// The token normally comes from the signed-in licence token;
-        /// ADLM_AI_TOKEN is a dev/test override.
+        /// The token comes from the signed-in licence token. ADLM_AI_TOKEN is a
+        /// developer's override, honoured only when <see cref="IsDevelopmentBuild"/>;
+        /// see <see cref="AiServiceTokenOverride"/>.
         /// </summary>
         public static string? AiServiceUrl
         {
@@ -72,7 +88,67 @@ namespace ADLMRateGen.Helpers
             }
         }
 
-        public static string? AiServiceTokenOverride => GetOptional("ADLM_AI_TOKEN");
+        /// <summary>
+        /// ADLM_AI_TOKEN as found on this machine, whatever the build. Whether it
+        /// is ever SENT is decided by Services.AiTokenResolver: only a Debug build
+        /// honours it, and only until the AI service rejects it once.
+        ///
+        /// It is a developer's convenience for calling the service without a
+        /// subscription. Before this guard every build sent it ahead of the
+        /// signed-in licence, so a dead token left in a user environment turned
+        /// every "Build with AI" click into "Sign in again", and signing in again
+        /// changed nothing because the licence was never consulted.
+        /// </summary>
+        public static string? AiServiceTokenOverride => GetOptional(AiTokenOverrideVariable);
+
+        /// <summary>
+        /// On an installed (Release) build, delete a user-scope ADLM_AI_TOKEN and
+        /// forget the process copy, so a development token left behind on a
+        /// machine cannot linger. Returns true when something was removed.
+        ///
+        /// Release ignores the variable anyway, so this is housekeeping rather
+        /// than a dependency, in the same spirit as
+        /// <see cref="RemoveRetiredHostOverrides"/>: remove the cause, not just
+        /// step over it. A Debug build keeps it, because there it is deliberate.
+        ///
+        /// User scope only; a machine-scope value needs administrator rights.
+        /// The name and build flag are parameters so a test can exercise this on a
+        /// throwaway variable without touching anyone's real one.
+        /// </summary>
+        public static bool RemoveStaleAiTokenOverride(string? name = null, bool? developmentBuild = null)
+        {
+            name ??= AiTokenOverrideVariable;
+            if (developmentBuild ?? IsDevelopmentBuild) return false;
+
+            try
+            {
+                var userValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
+                var processValue = Environment.GetEnvironmentVariable(name);
+                if (string.IsNullOrWhiteSpace(userValue) && string.IsNullOrWhiteSpace(processValue)) return false;
+
+                if (!string.IsNullOrWhiteSpace(userValue))
+                    Environment.SetEnvironmentVariable(name, null, EnvironmentVariableTarget.User);
+
+                // The process copy was inherited at launch and is not affected by
+                // the change above; clear it so this run stops seeing it too.
+                Environment.SetEnvironmentVariable(name, null);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AppEnvironment] Removed {name}: an installed build takes its AI token from the signed-in licence, so a leftover development token could only get in the way.");
+                return true;
+            }
+            catch (System.Security.SecurityException)
+            {
+                // No permission to write the user environment. Release ignores the
+                // variable regardless, so nothing is lost this launch.
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AppEnvironment] Could not clean {name}: {ex.Message}");
+                return false;
+            }
+        }
 
         public static string? LocalJwtSecret => GetOptional("ADLM_RATEGEN_LOCAL_JWT_SECRET");
 

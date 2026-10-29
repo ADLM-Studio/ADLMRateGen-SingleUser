@@ -534,9 +534,16 @@ namespace ADLMRateGen.ViewModel.CustomRate
                 // An all-zero build-up is not a usable rate. It used to fill the
                 // form and report "AI draft ready", so the QS could save a rate
                 // whose every line priced 0.00 without anything flagging it.
+                // A successful build can still carry something the user should
+                // know about how it authenticated (a dead development token on
+                // this PC was skipped for their licence). Lead with it.
+                var authNote = string.IsNullOrWhiteSpace(result.AuthNotice)
+                    ? string.Empty
+                    : result.AuthNotice + " ";
+
                 if (AiRateService.IsUnpriced(rate))
                 {
-                    AiStatus =
+                    AiStatus = authNote +
                         "ADLM AI returned this build-up with no prices — every line came back at 0.00. " +
                         "The quantities are filled in, but you must enter the rates yourself before saving, " +
                         "or pick items from the library so their prices apply.";
@@ -555,12 +562,12 @@ namespace ADLMRateGen.ViewModel.CustomRate
                     ? " — cached result, service unreachable"
                     : string.Empty;
 
-                AiStatus = HasAiWarnings
+                AiStatus = authNote + (HasAiWarnings
                     ? $"AI draft ready{confidence}{cachedNote}, but it did not pass ADLM's checks — " +
                       $"see below. Correct the flagged lines before saving. " +
                       (result.Disclaimer ?? string.Empty)
                     : $"AI draft ready{confidence}{cachedNote}. Review every line before saving. " +
-                      (result.Disclaimer ?? string.Empty);
+                      (result.Disclaimer ?? string.Empty));
             }
             catch (Exception ex)
             {

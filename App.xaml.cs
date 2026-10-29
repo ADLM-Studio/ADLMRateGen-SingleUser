@@ -92,6 +92,11 @@ namespace ADLMRateGen
                 // retired. See AppEnvironment.RemoveRetiredHostOverrides.
                 Helpers.AppEnvironment.RemoveRetiredHostOverrides();
 
+                // Likewise a development AI token (ADLM_AI_TOKEN) left in the user
+                // environment: an installed build never sends it, and removing it
+                // means the next build needs no guard. No-op in a Debug build.
+                Helpers.AppEnvironment.RemoveStaleAiTokenOverride();
+
                 // 3) Migrations + data initialization
                 // The splash names each step as it starts (Richard's loading system).
                 splash.Say("Preparing your library…");

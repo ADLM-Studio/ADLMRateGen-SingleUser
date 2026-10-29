@@ -222,6 +222,32 @@ namespace ADLMRateGen.ADLM.Auth
         public string GetCachedLicenseToken() { return _licenseStore.Load(); }
         public string BaseUrl { get { return _opt.BaseUrl; } }
 
+        /// <summary>
+        /// Forces one session refresh, the way every other cloud call renews its
+        /// access token, and returns the licence token held afterwards (null when
+        /// there is none). A full login stores the licence; the server currently
+        /// answers a refresh with licenseToken null, so today this hands back the
+        /// licence the user signed in with. It exists so a rejected licence is
+        /// retried once by the same route as other calls, and so a server that
+        /// starts renewing licences on refresh is honoured without a client
+        /// change. Never throws.
+        /// </summary>
+        public async Task<string?> TryRefreshLicenseTokenAsync(CancellationToken ct = default(CancellationToken))
+        {
+            try
+            {
+                _accessExpiryUtc = default(DateTimeOffset);
+                await GetAccessTokenAsync(ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Refresh failures are already handled inside GetAccessTokenAsync.
+            }
+
+            try { return GetCachedLicenseToken(); }
+            catch { return null; }
+        }
+
         public async Task<bool> LoginAsync(string identifier, string password, CancellationToken ct = default(CancellationToken))
         {
             identifier = (identifier ?? "").Trim();
