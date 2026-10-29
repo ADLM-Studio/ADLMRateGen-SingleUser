@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AdlmAi;
@@ -22,7 +23,10 @@ namespace ADLMRateGen.Services
 	///    is hidden only when ADLM_AI_URL (or ADLM_RATEGEN_AI_URL) is set to
 	///    "off" — the deliberate opt-out.
 	///  - Auth uses the signed-in user's cached licence token (which carries
-	///    the `ai` add-on entitlement); ADLM_AI_TOKEN overrides for dev/test.
+	///    the `ai` add-on entitlement). ADLM_AI_TOKEN is a developer's override,
+	///    honoured only in a Debug build and dropped for the session the moment
+	///    the service rejects it; see <see cref="AiTokenResolver"/> and
+	///    <see cref="AiAuthRetryHandler"/> for why that order matters.
 	///  - Never throws for AI availability problems — check
 	///    <see cref="AiRateResult.Status"/> and show <see cref="AiRateResult.Message"/>.
 	/// </summary>
@@ -32,40 +36,51 @@ namespace ADLMRateGen.Services
 		public static AiRateService Instance => _instance.Value;
 
 		private readonly AdlmAiClient? _client;
+		private readonly AiTokenResolver _tokens;
+		private readonly AiAuthRetryHandler? _auth;
 
 		private AiRateService()
+			: this(AppEnvironment.AiServiceUrl, new AuthClientCredentialSource(), innerHandler: null)
 		{
-			var url = AppEnvironment.AiServiceUrl;
+		}
+
+		/// <summary>
+		/// Test seam: the same wiring as the singleton, with the credentials and
+		/// the network replaceable. <paramref name="honourOverride"/> null means
+		/// "whatever this build does" (Debug honours ADLM_AI_TOKEN, Release ignores it).
+		/// </summary>
+		internal AiRateService(
+			string? url,
+			IAiCredentialSource credentials,
+			HttpMessageHandler? innerHandler,
+			bool? honourOverride = null)
+		{
+			_tokens = new AiTokenResolver(credentials, honourOverride);
 			if (!string.IsNullOrWhiteSpace(url))
 			{
+				_auth = new AiAuthRetryHandler(_tokens, innerHandler ?? new HttpClientHandler());
 				_client = new AdlmAiClient(new AdlmAiOptions
 				{
 					BaseUrl = url!,
-					TokenProvider = ResolveToken,
+					// The handler re-applies the header per attempt; this keeps the
+					// SDK's own view of the token consistent with it.
+					TokenProvider = _tokens.Current,
 					Product = AppEnvironment.ProductKey, // "rategen"
-				});
+				}, new HttpClient(_auth));
 			}
 		}
 
 		/// <summary>The AI service address (null when ADLM_AI_URL is "off"), for callers that post to it directly.</summary>
 		internal static string? ServiceUrl => AppEnvironment.AiServiceUrl;
 
-		/// <summary>The token the AI service accepts: ADLM_AI_TOKEN, else the signed-in licence token.</summary>
-		internal static string CurrentToken() => ResolveToken();
+		/// <summary>
+		/// The token the AI service accepts right now: the signed-in licence token,
+		/// or in a Debug build ADLM_AI_TOKEN until the service has rejected it.
+		/// </summary>
+		internal static string CurrentToken() => Instance._tokens.Current();
 
-		private static string ResolveToken()
-		{
-			var overrideTok = AppEnvironment.AiServiceTokenOverride;
-			if (!string.IsNullOrWhiteSpace(overrideTok)) return overrideTok!;
-			try
-			{
-				return AuthProvider.Instance.Client.GetCachedLicenseToken() ?? string.Empty;
-			}
-			catch
-			{
-				return string.Empty;
-			}
-		}
+		/// <summary>How the last request authenticated (None when AI is switched off).</summary>
+		internal AiAuthOutcome LastAuthOutcome => _auth?.LastOutcome ?? AiAuthOutcome.None;
 
 		/// <summary>True unless AI has been switched off (controls UI visibility).</summary>
 		public bool IsConfigured => _client != null;
@@ -167,15 +182,22 @@ namespace ADLMRateGen.Services
 				.RateBuildupAsync(description, zone, unit, CollectLibraryContext(), progress, ct)
 				.ConfigureAwait(false);
 
+			var auth = LastAuthOutcome;
 			if (!res.IsSuccess || res.Value == null)
 			{
-				return AiRateResult.Fail(res.Status, res.Message ?? "AI request failed.");
+				// The SDK says "Sign in again" for every 401. When the 401 was for a
+				// token the user never set, or signing in again cannot help, say so.
+				var message = res.Status == AiStatus.NotEntitled
+					? AiAuthMessages.ForFailure(auth, res.Message)
+					: res.Message;
+				return AiRateResult.Fail(res.Status, message ?? "AI request failed.");
 			}
 
 			return new AiRateResult
 			{
 				Status = res.Status,
 				Message = res.Message,
+				AuthNotice = AiAuthMessages.ForSuccess(auth),
 				Disclaimer = res.Disclaimer,
 				Confidence = res.Audit?.Confidence,
 				Model = res.Audit?.Model,
@@ -289,6 +311,13 @@ namespace ADLMRateGen.Services
 		public string? Disclaimer { get; set; }
 		public double? Confidence { get; set; }
 		public string? Model { get; set; }
+
+		/// <summary>
+		/// Something about how the request authenticated that the user should see
+		/// even though it succeeded (a dead development token was skipped). Null
+		/// in the normal case.
+		/// </summary>
+		public string? AuthNotice { get; set; }
 
 		/// <summary>
 		/// Server-side check failures the build-up was returned with anyway.
