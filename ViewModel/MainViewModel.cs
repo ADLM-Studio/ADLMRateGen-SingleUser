@@ -58,6 +58,11 @@ namespace ADLMRateGen.ViewModel
         /* ───────── rate sync ───────── */
         private readonly RateCatalogSyncService _rateSync;
         private readonly DispatcherTimer _notificationPollTimer;
+
+        // Watches the pricing location on the ADLM profile. See CheckProfileLocationAsync.
+        private readonly DispatcherTimer _locationWatchTimer;
+        private bool _isLocationCheckRunning;
+        private string? _offeredProfileState;
         private readonly DispatcherTimer _userRatesSyncTimer;
         private bool _isServerNotificationCheckRunning;
         private int _lastMaterialsVersion;
@@ -511,6 +516,11 @@ namespace ADLMRateGen.ViewModel
                 Interval = TimeSpan.FromMinutes(4)
             };
             _notificationPollTimer.Tick += async (_, _) => await CheckForServerNotificationsAsync();
+            _locationWatchTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _locationWatchTimer.Tick += async (_, _) => await CheckProfileLocationAsync();
             _userRatesSyncTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(3)
@@ -1055,6 +1065,10 @@ namespace ADLMRateGen.ViewModel
         {
             if (!_notificationPollTimer.IsEnabled)
                 _notificationPollTimer.Start();
+
+            _offeredProfileState = null;   // a fresh sign-in may ask again
+            if (!_locationWatchTimer.IsEnabled)
+                _locationWatchTimer.Start();
         }
 
         private void StopNotificationPolling()
@@ -1062,7 +1076,99 @@ namespace ADLMRateGen.ViewModel
             if (_notificationPollTimer.IsEnabled)
                 _notificationPollTimer.Stop();
 
+            if (_locationWatchTimer.IsEnabled)
+                _locationWatchTimer.Stop();
+
             _isServerNotificationCheckRunning = false;
+            _isLocationCheckRunning = false;
+        }
+
+        /// <summary>
+        /// The pricing location is set on the ADLM profile, on the website, and
+        /// nowhere in this app. Until now the desktop only learned of a change at
+        /// the next F5 or sign-in, so someone who moved their profile to another
+        /// state and carried on pricing was pricing from the old one without
+        /// knowing. Once a minute this reads the profile (one small request) and,
+        /// when its state differs from the one the library is priced from, asks
+        /// once whether to bring the new prices down now. "Not now" leaves the
+        /// library as it is and puts a reminder in the bell; the next F5 or
+        /// sign-in syncs it anyway. Asked once per change, whatever the answer.
+        /// </summary>
+        private async Task CheckProfileLocationAsync()
+        {
+            if (!IsLoggedIn || IsBusy || _isLocationCheckRunning) return;
+            if (!AuthProvider.Instance.Client.HasSession) return;
+
+            _isLocationCheckRunning = true;
+            try
+            {
+                var onProfile = await Services.MasterLibrarySyncService.ReadProfileStateAsync();
+                if (onProfile == null) return;
+
+                var pricedFrom = Services.MasterLibrarySyncService.ResolveState();
+                if (string.Equals(onProfile, pricedFrom, StringComparison.OrdinalIgnoreCase)) return;
+                if (string.Equals(onProfile, _offeredProfileState, StringComparison.OrdinalIgnoreCase)) return;
+                _offeredProfileState = onProfile;
+
+                var newLabel = NigerianStates.Find(onProfile)?.Label ?? onProfile;
+                var oldLabel = NigerianStates.Find(pricedFrom)?.Label ?? pricedFrom;
+
+                var now = View.Suite.SuiteDialog.Ask(
+                    "Pricing location changed",
+                    $"Your ADLM profile now prices from {newLabel}. The library on this PC is still priced from {oldLabel}.\n\n"
+                    + $"Bring {newLabel} prices down now? Prices you set yourself are kept.",
+                    "Update prices now", "Not now");
+
+                if (!now)
+                {
+                    AddNotification($"Pricing location is now {newLabel}. Press F5 to price from it.");
+                    return;
+                }
+
+                await SyncMasterPricesForProfileAsync(newLabel);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainViewModel] profile location check: {ex.Message}");
+            }
+            finally
+            {
+                _isLocationCheckRunning = false;
+            }
+        }
+
+        /// <summary>Master prices only, for the location on the profile; the rest of F5 is not needed for this.</summary>
+        private async Task SyncMasterPricesForProfileAsync(string label)
+        {
+            SetBusy(true, $"Bringing prices down for {label}…");
+            try
+            {
+                var sync = await Services.MasterLibrarySyncService.SyncAsync();
+
+                MaterialLibraryViewModel.ReloadFromDisk();
+                LabourLibraryViewModel.ReloadFromDisk();
+                LibraryShellViewModel?.RefreshLocationNote();
+                _index.Rebuild(this);
+
+                if (sync.Ok)
+                {
+                    AddNotification($"Prices updated for {sync.Zone}");
+                }
+                else
+                {
+                    AddNotification($"Prices for {label} could not be updated: {sync.Message}");
+                    View.Suite.SuiteDialog.Tell("Update prices", sync.Message, View.Suite.SuiteDialog.Tone.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (IsUnauthorizedException(ex)) { RequireSignInAgain(manual: false); return; }
+                View.Suite.SuiteDialog.Tell("Update prices", Describe(ex), View.Suite.SuiteDialog.Tone.Warning);
+            }
+            finally
+            {
+                SetBusy(false);
+            }
         }
 
         private async Task InitializeNotificationStateAsync()

@@ -179,6 +179,13 @@ namespace ADLMRateGen.Services
         /// state is read: the profile's "zone" is the geopolitical zone derived
         /// from it, which is not a state and would not normalise to one.
         /// </summary>
+        public static Task<string?> ReadProfileStateAsync(CancellationToken ct = default)
+        {
+            var auth = AuthProvider.Instance.Client;
+            if (auth == null || !auth.HasSession) return Task.FromResult<string?>(null);
+            return ReadProfileStateAsync(auth, ct);
+        }
+
         private static async Task<string?> ReadProfileStateAsync(ADLM.Auth.AuthClient auth, CancellationToken ct)
         {
             try
