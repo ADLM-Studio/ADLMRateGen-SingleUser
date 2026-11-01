@@ -22,8 +22,10 @@ namespace ADLMRateGen.ViewModel.BillPricing
     /// <summary>
     /// Price a bill: open any client's Excel bill, ADLM AI proposes a RateGen rate for
     /// each measured item, the user accepts or changes them, and the priced bill is
-    /// downloaded as a copy in the client's own layout. Nothing is priced until the
-    /// user accepts it; a line with no good match stays unpriced and is listed.
+    /// downloaded as a copy in the client's own layout. Suggestions show their rate and
+    /// amount at once; only accepted rates go into the download. A line with no good
+    /// match stays unpriced and is listed. Every rate the user accepts or chooses is
+    /// remembered (BillChoiceMemory) and proposed first on the next bill.
     /// </summary>
     public sealed class BillPricingViewModel : ViewModelBase
     {
@@ -33,21 +35,41 @@ namespace ADLMRateGen.ViewModel.BillPricing
         /// <summary>Every priced rate in RateGen, as the carbon screen gets them (set by MainViewModel).</summary>
         public Func<IEnumerable<(string Trade, object Item)>>? Sources { get; set; }
 
+        /// <summary>Opens the signed-in account's memory of earlier choices (tests hand in their own).</summary>
+        public Func<BillChoiceMemory> MemoryFor { get; set; } = BillChoiceMemory.ForCurrentUser;
+        private BillChoiceMemory? _memory;
+
+        // RelayCommand re-checks CanExecute only when told to (it is not wired to
+        // CommandManager), so every state change calls Requery(). Without it the
+        // buttons kept the state they had when the screen first loaded: Accept and
+        // "Accept the sure matches" stayed greyed out with suggestions on screen.
+        private readonly List<RelayCommand> _commands = new();
+        private RelayCommand Cmd(Action<object?> run, Func<object?, bool>? can = null)
+        {
+            var c = new RelayCommand(run, can);
+            _commands.Add(c);
+            return c;
+        }
+        private void Requery()
+        {
+            foreach (var c in _commands) c.RaiseCanExecuteChanged();
+        }
+
         public BillPricingViewModel()
         {
             LinesView = CollectionViewSource.GetDefaultView(Lines);
             LinesView.Filter = o => o is BillLineViewModel l && Passes(l);
 
-            OpenBillCommand = new RelayCommand(async _ => await OpenBillAsync(), _ => Stage != BillStage.Working);
-            CancelCommand = new RelayCommand(_ => _cts?.Cancel(), _ => Stage == BillStage.Working);
-            AcceptSureCommand = new RelayCommand(_ => AcceptSure(), _ => Lines.Any(l => l.NeedsAttention && l.Suggested != null && l.Confidence >= SureConfidence));
-            AcceptCommand = new RelayCommand(_ => SelectedLine?.Accept(), _ => SelectedLine?.Suggested != null && !SelectedLine.IsPriced);
-            ClearCommand = new RelayCommand(_ => SelectedLine?.Clear(), _ => SelectedLine?.IsPriced == true);
-            UseRateCommand = new RelayCommand(o => { if (o is BillRate r) SelectedLine?.Use(r); }, o => o is BillRate && SelectedLine?.IsPriceable == true);
-            DownloadExcelCommand = new RelayCommand(async _ => await DownloadExcelAsync(), _ => Stage == BillStage.Review && PricedCount > 0);
-            StartOverCommand = new RelayCommand(_ => StartOver(), _ => Stage == BillStage.Review);
-            SaveToCloudCommand = new RelayCommand(async _ => await SaveToCloudAsync(), _ => Stage == BillStage.Review && !_savingToCloud && ItemCount > 0);
-            SetFilterCommand = new RelayCommand(o => Filter = o as string ?? "All");
+            OpenBillCommand = Cmd(async _ => await OpenBillAsync(), _ => Stage != BillStage.Working);
+            CancelCommand = Cmd(_ => _cts?.Cancel(), _ => Stage == BillStage.Working);
+            AcceptSureCommand = Cmd(_ => AcceptSure(), _ => SureCount > 0);
+            AcceptCommand = Cmd(_ => AcceptSelected(), _ => SelectedLine?.CanAccept == true);
+            ClearCommand = Cmd(_ => SelectedLine?.Clear(), _ => SelectedLine?.IsPriced == true);
+            UseRateCommand = Cmd(o => { if (o is BillRate r) UseRate(r); }, o => o is BillRate && SelectedLine?.IsPriceable == true);
+            DownloadExcelCommand = Cmd(async _ => await DownloadExcelAsync(), _ => Stage == BillStage.Review && PricedCount > 0);
+            StartOverCommand = Cmd(_ => StartOver(), _ => Stage == BillStage.Review);
+            SaveToCloudCommand = Cmd(async _ => await SaveToCloudAsync(), _ => Stage == BillStage.Review && !_savingToCloud && ItemCount > 0);
+            SetFilterCommand = Cmd(o => Filter = o as string ?? "All");
         }
 
         // ---- state -----------------------------------------------------------------------
@@ -63,7 +85,7 @@ namespace ADLMRateGen.ViewModel.BillPricing
                 RaisePropertyChanged(nameof(IsEmpty));
                 RaisePropertyChanged(nameof(IsWorking));
                 RaisePropertyChanged(nameof(IsReview));
-                CommandManager.InvalidateRequerySuggested();
+                Requery();
             }
         }
         public bool IsEmpty => _stage == BillStage.Empty;
@@ -127,7 +149,7 @@ namespace ADLMRateGen.ViewModel.BillPricing
                 _rateSearch = "";
                 RaisePropertyChanged(nameof(RateSearch));
                 RefreshRateResults();
-                CommandManager.InvalidateRequerySuggested();
+                Requery();
             }
         }
         public bool HasSelection => _selected != null;
@@ -147,8 +169,16 @@ namespace ADLMRateGen.ViewModel.BillPricing
         public int PricedCount => Lines.Count(l => l.IsPriced);
         public int AttentionCount => Lines.Count(l => l.NeedsAttention);
         public int SuggestedCount => Lines.Count(l => l.NeedsAttention && l.Suggested != null);
-        /// <summary>The bill total in naira: accepted lines only.</summary>
-        public decimal GrandTotal => Lines.Where(l => l.IsPriced).Sum(l => l.Amount);
+        /// <summary>Suggestions "Accept the sure matches" takes: not yet accepted, at least 85% sure.</summary>
+        public int SureCount => Lines.Count(IsSure);
+        private static bool IsSure(BillLineViewModel l) => l.NeedsAttention && l.Suggested != null && l.Confidence >= SureConfidence;
+        /// <summary>The bill total in naira as shown: accepted lines and suggestions.</summary>
+        public decimal GrandTotal => Lines.Where(l => l.IsPriceable).Sum(l => l.Amount);
+        /// <summary>Accepted lines only: what the downloaded bill carries.</summary>
+        public decimal AcceptedTotal => Lines.Where(l => l.IsPriced).Sum(l => l.Amount);
+        /// <summary>The part of the total still only suggested.</summary>
+        public decimal SuggestedTotal => GrandTotal - AcceptedTotal;
+        public bool HasSuggestedTotal => Lines.Any(l => l.IsSuggestedOnly && l.HasAmount);
         public ObservableCollection<BillSummaryLine> SectionTotals { get; } = new();
 
         // ---- commands --------------------------------------------------------------------
@@ -202,6 +232,7 @@ namespace ADLMRateGen.ViewModel.BillPricing
             SelectedLine = null;
             _originalPath = path;
             _cloudProjectId = null;
+            _memory = null;
             RaisePropertyChanged(nameof(SaveToCloudLabel));
             BillName = Path.GetFileName(path);
             Stage = BillStage.Working;
@@ -244,14 +275,21 @@ namespace ADLMRateGen.ViewModel.BillPricing
                     return;
                 }
 
-                // 2. Ask ADLM AI which of the user's rates is the same work.
+                // 2. The user's own earlier choices first; ADLM AI for the rest.
                 Step = 1;
                 _rates = BillRateCatalogue.Build(Sources?.Invoke() ?? Enumerable.Empty<(string, object)>());
+                var memory = Memory();
+                var recalled = new Dictionary<string, BillRecall>();
+                foreach (var l in Lines.Where(l => l.IsPriceable))
+                    if (memory.Recall(l.Context, l.UnitKey, _rates) is { } hit) recalled[l.Id] = hit;
+                // A line priced word for word before needs no AI; a similar one still asks, but the memory wins.
+                var toAsk = items.Where(r => !(recalled.TryGetValue(r.Id, out var h) && h.Exact)).ToList();
                 Status = $"Matching {items.Count} items to your {_rates.Count} rates…";
                 var progress = new Progress<string>(s => Status = s);
                 var outcome = _rates.Count == 0
                     ? new BillMatchOutcome { Ok = false, Error = "RateGen has no priced rates loaded yet. Open a trade once so its rates load, then try again." }
-                    : await BillMatcher.MatchAsync(items, _rates, progress, ct);
+                    : toAsk.Count == 0 ? new BillMatchOutcome { Ok = true }
+                    : await BillMatcher.MatchAsync(toAsk, _rates, progress, ct);
 
                 // 3. Lay the suggestions on the lines; nothing is accepted yet.
                 Step = 2;
@@ -261,8 +299,12 @@ namespace ADLMRateGen.ViewModel.BillPricing
                 foreach (var m in outcome.Matches)
                     if (byRow.TryGetValue(m.RowId, out var line) && byId.TryGetValue(m.RateId, out var rate))
                         line.Suggest(rate, m.Confidence, m.Reason);
+                foreach (var (rowId, hit) in recalled)
+                    if (byRow.TryGetValue(rowId, out var line)) line.Suggest(hit.Rate, hit.Confidence, hit.Reason, fromMemory: true);
 
                 var problems = new List<string>();
+                if (recalled.Count > 0)
+                    problems.Add($"{recalled.Count} {(recalled.Count == 1 ? "line is" : "lines are")} proposed from your earlier choices. Check them like any suggestion.");
                 if (!outcome.Ok) problems.Add("ADLM AI could not match this bill: " + outcome.Error + " You can still price each line by choosing a rate.");
                 else if (outcome.UsedFallback) problems.Add("ADLM AI's bill matcher is not live yet, so the general matcher answered. Check every suggestion.");
                 if (skipped.Count > 0) problems.Add("Sheets not read: " + string.Join("; ", skipped) + ".");
@@ -288,10 +330,44 @@ namespace ADLMRateGen.ViewModel.BillPricing
             }
         }
 
-        private void AcceptSure()
+        private BillChoiceMemory Memory() => _memory ??= MemoryFor();
+
+        /// <summary>Accepts every suggestion at least 85% sure. Public for the test harness.</summary>
+        public void AcceptSure()
         {
-            foreach (var l in Lines.Where(l => l.NeedsAttention && l.Suggested != null && l.Confidence >= SureConfidence).ToList())
+            var sure = Lines.Where(IsSure).ToList();
+            foreach (var l in sure)
+            {
                 l.Accept();
+                Learn(l);
+            }
+            if (sure.Count > 0) Memory().Save();
+        }
+
+        /// <summary>Accepts the selected line's suggestion. Public for the test harness.</summary>
+        public void AcceptSelected()
+        {
+            var l = SelectedLine;
+            if (l == null || !l.CanAccept) return;
+            l.Accept();
+            Learn(l);
+            Memory().Save();
+        }
+
+        /// <summary>Prices the selected line with a rate the user chose. Public for the test harness.</summary>
+        public void UseRate(BillRate rate)
+        {
+            var l = SelectedLine;
+            if (l == null || !l.IsPriceable) return;
+            l.Use(rate);
+            Learn(l);
+            Memory().Save();
+        }
+
+        // The rate the user gave a line is what the next bill proposes for it.
+        private void Learn(BillLineViewModel l)
+        {
+            if (l.Rate != null) Memory().Remember(l.Context, l.UnitKey, l.Rate);
         }
 
         private void RefreshRateResults()
@@ -303,27 +379,43 @@ namespace ADLMRateGen.ViewModel.BillPricing
             foreach (var r in BillCandidatePicker.Search(text, line.UnitKey, _rates, 30)) RateResults.Add(r);
         }
 
+        private IEnumerable<IGrouping<string, BillLineViewModel>> Sections() =>
+            Lines.Where(l => l.IsPriceable)
+                 .GroupBy(l => string.IsNullOrWhiteSpace(l.Section) ? l.SheetName : l.SheetName + " › " + l.Section);
+
+        private List<BillSummaryLine> AcceptedSections() => Sections().Select(g => new BillSummaryLine
+        {
+            Label = g.Key,
+            Items = g.Count(),
+            Priced = g.Count(l => l.IsPriced),
+            Total = g.Where(l => l.IsPriced).Sum(l => l.Amount),
+        }).ToList();
+
         private void Recalculate()
         {
             SectionTotals.Clear();
-            foreach (var g in Lines.Where(l => l.IsPriceable)
-                         .GroupBy(l => string.IsNullOrWhiteSpace(l.Section) ? l.SheetName : l.SheetName + " › " + l.Section))
+            // On screen a section adds up what it shows: accepted lines and suggestions.
+            foreach (var g in Sections())
             {
                 SectionTotals.Add(new BillSummaryLine
                 {
                     Label = g.Key,
                     Items = g.Count(),
                     Priced = g.Count(l => l.IsPriced),
-                    Total = g.Where(l => l.IsPriced).Sum(l => l.Amount),
+                    Total = g.Sum(l => l.Amount),
                 });
             }
             RaisePropertyChanged(nameof(ItemCount));
             RaisePropertyChanged(nameof(PricedCount));
             RaisePropertyChanged(nameof(AttentionCount));
             RaisePropertyChanged(nameof(SuggestedCount));
+            RaisePropertyChanged(nameof(SureCount));
             RaisePropertyChanged(nameof(GrandTotal));
+            RaisePropertyChanged(nameof(AcceptedTotal));
+            RaisePropertyChanged(nameof(SuggestedTotal));
+            RaisePropertyChanged(nameof(HasSuggestedTotal));
             if (_filter != "All") LinesView.Refresh();
-            CommandManager.InvalidateRequerySuggested();
+            Requery();
         }
 
         private async Task SaveToCloudAsync()
@@ -343,7 +435,7 @@ namespace ADLMRateGen.ViewModel.BillPricing
             var name = Path.GetFileNameWithoutExtension(_originalPath);
             _savingToCloud = true;
             RaisePropertyChanged(nameof(SaveToCloudLabel));
-            CommandManager.InvalidateRequerySuggested();
+            Requery();
             try
             {
                 var wasSaved = _cloudProjectId != null;
@@ -379,7 +471,7 @@ namespace ADLMRateGen.ViewModel.BillPricing
             {
                 _savingToCloud = false;
                 RaisePropertyChanged(nameof(SaveToCloudLabel));
-                CommandManager.InvalidateRequerySuggested();
+                Requery();
             }
         }
 
@@ -420,11 +512,12 @@ namespace ADLMRateGen.ViewModel.BillPricing
                 Amount = Math.Round(cur.FromNgn(l.Amount), 2),
                 Note = $"RateGen: {l.Rate.Name} ({l.Rate.Trade}), {l.Rate.Unit}",
             }).ToList();
-            var summary = SectionTotals.Select(s => new BillSummaryLine
+            // The download carries accepted rates only, so its summary and total do too.
+            var summary = AcceptedSections().Select(s => new BillSummaryLine
             {
                 Label = s.Label, Items = s.Items, Priced = s.Priced, Total = Math.Round(cur.FromNgn(s.Total), 2),
             }).ToList();
-            var total = Math.Round(cur.FromNgn(GrandTotal), 2);
+            var total = Math.Round(cur.FromNgn(AcceptedTotal), 2);
 
             try
             {
