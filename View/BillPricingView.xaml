@@ -64,7 +64,7 @@
                 <TextBlock Style="{StaticResource SxMuted}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20"
                            Text="Any layout, any number of sheets, .xlsx or .xls. RateGen finds the description, unit and quantity columns itself and reads each item with the section and headings above it." />
                 <TextBlock Style="{StaticResource SxMuted}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20"
-                           Text="Nothing is priced until you accept it, and the client's file is never changed: the priced bill is saved as a copy." />
+                           Text="Suggested rates show in grey until you accept them; only accepted rates go into the download. The rates you accept or choose are remembered and proposed first next time. The client's file is never changed: the priced bill is saved as a copy." />
                 <Button Style="{StaticResource SxBtn}" HorizontalAlignment="Left" Margin="0,18,0,0"
                         Command="{Binding OpenBillCommand}" Content="Open a bill" />
             </StackPanel>
@@ -120,10 +120,10 @@
                         </Border>
                         <Button Style="{StaticResource SxBtnGhostSm}" Margin="0,0,0,6" VerticalAlignment="Center"
                                 Command="{Binding AcceptSureCommand}"
-                                ToolTip="Accepts every suggestion ADLM AI is at least 85% sure of. You can still change any of them.">
+                                ToolTip="Accepts every suggestion at least 85% sure, from ADLM AI or your earlier choices. You can still change any of them.">
                             <TextBlock>
                                 <Run Text="Accept the sure matches" />
-                                <Run Text="{Binding SuggestedCount, Mode=OneWay, StringFormat='({0} suggested)'}" />
+                                <Run Text="{Binding SureCount, Mode=OneWay, StringFormat='({0} sure'}" /> <Run Text="{Binding SuggestedCount, Mode=OneWay, StringFormat='of {0} suggested)'}" />
                             </TextBlock>
                         </Button>
                     </WrapPanel>
@@ -167,13 +167,44 @@
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="SURE" Binding="{Binding ConfidenceText}" Width="76"
                                                     HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
-                                <DataGridTextColumn Header="RATE" Binding="{Binding UnitRate, Converter={StaticResource MoneyConv}}" Width="Auto" MinWidth="110"
-                                                    HeaderStyle="{StaticResource SxTableHeaderRight}" ElementStyle="{StaticResource SxCellNum}" />
+                                <!-- A suggestion shows its rate and amount muted and in italics until it is accepted. -->
+                                <DataGridTemplateColumn Header="RATE" Width="Auto" MinWidth="110" HeaderStyle="{StaticResource SxTableHeaderRight}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding UnitRate, Converter={StaticResource MoneyConv}}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNum}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSuggestedOnly}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+                                                                <Setter Property="FontStyle" Value="Italic" />
+                                                                <Setter Property="ToolTip" Value="Suggested, not accepted yet" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="AMOUNT" Width="Auto" MinWidth="130" HeaderStyle="{StaticResource SxTableHeaderRight}">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Style="{StaticResource SxCellNumB}" Text="{Binding Amount, Converter={StaticResource MoneyConv}}"
-                                                       Visibility="{Binding IsPriced, Converter={StaticResource BoolVis}}" />
+                                            <TextBlock Text="{Binding Amount, Converter={StaticResource MoneyConv}}"
+                                                       Visibility="{Binding HasAmount, Converter={StaticResource BoolVis}}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource SxCellNumB}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSuggestedOnly}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource SxInk3}" />
+                                                                <Setter Property="FontStyle" Value="Italic" />
+                                                                <Setter Property="FontWeight" Value="Normal" />
+                                                                <Setter Property="ToolTip" Value="Suggested, not accepted yet" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -181,7 +212,8 @@
                         </DataGrid>
                     </ScrollViewer>
 
-                    <!-- Totals: accepted lines only -->
+                    <!-- Totals: accepted lines and suggestions, with the accepted part named -->
+
                     <Grid Grid.Row="2" Margin="0,14,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -195,9 +227,19 @@
                             <Run Text="{Binding ItemCount, Mode=OneWay}" />
                             <Run Text="items priced" />
                         </TextBlock>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource SxLabel}" Text="BILL TOTAL" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Style="{StaticResource SxH2}" Text="{Binding GrandTotal, Converter={StaticResource MoneyConv}}" />
+                        <StackPanel Grid.Column="1">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock Style="{StaticResource SxLabel}" Text="BILL TOTAL" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <TextBlock Style="{StaticResource SxH2}" Text="{Binding GrandTotal, Converter={StaticResource MoneyConv}}" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource SxMuted}" FontSize="11.5" HorizontalAlignment="Right" Margin="0,2,0,0"
+                                       Visibility="{Binding HasSuggestedTotal, Converter={StaticResource BoolVis}}"
+                                       ToolTip="The downloaded bill carries accepted rates only.">
+                                <Run Text="{Binding AcceptedTotal, Mode=OneWay, Converter={StaticResource MoneyConv}}" />
+                                <Run Text="accepted ·" />
+                                <Run Text="{Binding SuggestedTotal, Mode=OneWay, Converter={StaticResource MoneyConv}}" FontStyle="Italic" />
+                                <Run Text="still suggested" FontStyle="Italic" />
+                            </TextBlock>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -257,7 +299,7 @@
                             <TextBlock Style="{StaticResource SxText}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0" Text="{Binding MatchName}" />
                             <TextBlock Style="{StaticResource SxMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0">
                                 <Run Text="{Binding MatchTrade, Mode=OneWay}" />
-                                <Run Text="{Binding ConfidenceText, Mode=OneWay, StringFormat='· ADLM AI {0} sure'}" />
+                                <Run Text="{Binding ConfidenceText, Mode=OneWay, StringFormat='· {0} sure'}" />
                             </TextBlock>
                             <TextBlock Style="{StaticResource SxMuted}" FontSize="12" FontStyle="Italic" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding Reason}" />
                             <TextBlock Style="{StaticResource SxMuted}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding Status}" />
