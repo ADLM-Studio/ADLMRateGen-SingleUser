@@ -1,5 +1,31 @@
 # ADLM Rate Gen — Release Notes
 
+## Rate Gen 3.0, build 3.0.2611.1 — November 2026
+
+Everything in build 2610.3, plus a fix and a new feature for Price a bill. Rate
+Gen keeps its launch version, 3.0, through 2026; this release moves only the
+build number (3.0.2611.1).
+
+### Fixed: Price a bill showed no rates, no amounts and a greyed-out Accept
+
+After a bill was matched, every line had a suggested rate, but the RATE and
+AMOUNT columns stayed empty, BILL TOTAL read NGN 0.00, and neither Accept nor
+"Accept the sure matches" could be pressed. Now each suggested line shows its
+rate and amount straight away (in grey italics until you accept it), and BILL
+TOTAL adds them up, with the accepted part and the part still suggested shown
+underneath. Accept works whenever a line has a suggestion. "Accept the sure
+matches" says how many it will take: those at least 85% sure. The downloaded
+bill still carries only the rates you accepted.
+
+### New: Price a bill remembers your choices
+
+Every rate you accept or choose for a bill line is remembered. On your next
+bill, the same line is proposed with that rate first, at 99%, and a similar
+line (same unit, same sizes, mostly the same words) at 89-95%, marked "From
+your earlier choice". You can still change any of them. Your latest choice
+for a line wins. The memory is kept on this PC for your account; it does not
+reach your ADLM account or your other PCs yet.
+
 ## Rate Gen 3.0, build 3.0.2610.3 — October 2026
 
 Everything in build 2610.2, plus two fixes. Rate Gen keeps its launch version,
